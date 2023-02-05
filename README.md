@@ -37,6 +37,7 @@ The Colourpicker app can be built both from commandline or using Xcode `-GXcode`
 mkdir build
 cd build
 cmake .. -DCMAKE_MODULE_PATH=<path>/colorpicker/modules -DCMAKE_PREFIX_PATH=<path>/3rdparty/build/macosx/arm64.debug -GXcode
+cmake --build . --config Release -j 8
 ```
 
 Packaging
