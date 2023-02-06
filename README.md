@@ -13,15 +13,15 @@ Colorpicker is a mac app to pick color values on your screen. It's an extended o
 Documentation
 -------------
 
-The Colorpicker app uses macOS to create images from the display for use with color picking. The app supports display profiles, different color formats and copy to clipboard functionality. All color processesing uses LittleCMS for portability.
+The Colorpicker app uses macOS to create images from the display for use with color picking. The app supports display profiles, different color formats and copy to clipboard functionality. All display color processesing uses LCMS for future portability.
 
 **Display profile**
 
-The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces.
+The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces, transformed from the display profile .icc.
 
 **Color processing in LCMS**
 
-LCMS is a popular color management system for use in open source projects. LCMS closely matches ColorSync, AdobeACE, Reference ICC and other color engines. There may be variations although the different engines should closely match.
+LCMS is a popular color management system for use in open source projects. LCMS closely matches ColorSync, AdobeACE, Reference ICC and other color engines. There may be variations, different engines should roughly match.
 
 Privacy & Security
 ------------------
@@ -31,7 +31,7 @@ colorpicker uses macOS to create images from display and needs permission for `S
 Building
 --------
 
-The Colourpicker app can be built both from commandline or using Xcode `-GXcode`. Use `DYLD_IMAGE_SUFFIX=_debug` environment variable to link and run with Qt debug frameworks.
+The Colorpicker app can be built both from commandline or using Xcode `-GXcode`. Use `DYLD_IMAGE_SUFFIX=_debug` environment variable to link and run with Qt debug frameworks.
 
 ```shell
 mkdir build
