@@ -5,6 +5,9 @@ Readme for colorpicker
 
 Introduction
 ------------
+
+![Screenshot](resources/Colorpicker.png)
+
 Colorpicker is a mac app to pick color values on your screen. It's an extended opensource version of macOS Digital Colour Meter app.
 
 Documentation
@@ -34,6 +37,7 @@ The Colourpicker app can be built both from commandline or using Xcode `-GXcode`
 mkdir build
 cd build
 cmake .. -DCMAKE_MODULE_PATH=<path>/colorpicker/modules -DCMAKE_PREFIX_PATH=<path>/3rdparty/build/macosx/arm64.debug -GXcode
+cmake --build . --config Release -j 8
 ```
 
 Packaging
