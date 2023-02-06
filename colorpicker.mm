@@ -11,7 +11,8 @@
 void
 Colorpicker::registerEvents()
 {
-    [NSEvent addLocalMonitorForEventsMatchingMask:(NSEventMaskMouseMoved)
+    [NSEvent addLocalMonitorForEventsMatchingMask:
+       (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
     {
         NSPoint point = [NSEvent mouseLocation];
@@ -28,8 +29,9 @@ Colorpicker::registerEvents()
         return event;
     }];
     // copies of events the system posts to other applications.
-    [NSEvent addGlobalMonitorForEventsMatchingMask:(NSEventMaskMouseMoved)
-                                           handler:^(NSEvent * event)
+    [NSEvent addGlobalMonitorForEventsMatchingMask:
+     (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
+        handler:^(NSEvent * event)
      {
         NSPoint point = [NSEvent mouseLocation];
         mac::DisplayInfo display = mac::grabDisplayInfo(point.x, point.y);

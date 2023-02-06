@@ -8,6 +8,5 @@
 
 namespace lcms2
 {
-    QImage convertImage(QImage& image, QVector<cmsHPROFILE> profiles, int intent, cmsUInt32Number flags);
     QColor convertColor(QColor color, QString profile, QString displayProfile);
 }
