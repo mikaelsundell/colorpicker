@@ -22,7 +22,6 @@ Options:
    -b, --bundle            Path to bundle
    -m, --macdeployqt       Path to macdeployqt
    -d, --dmg               Path to dmg
-   -o, --overwrite         Overwrite files
 EOF
 }
 
@@ -52,8 +51,6 @@ while test $i -lt $# ; do
         -d|--dmg) 
             i=$((i + 1)); 
             dmg=${argv[$i]};;
-        -o|--overwrite)
-            overwrite=1;;
         *) 
             if ! test -e "${ARG}" ; then
                 echo "Unknown argument or file '${ARG}'"
@@ -69,6 +66,9 @@ if [ -z "${bundle}" ] || [ -z "${macdeployqt}" ] || [ -z "${dmg}" ]; then
     exit 1
 fi
 
+# deploy script
+script=$(readlink -f $0)
+
 # deploy macdeployqt
 function deploy_macdeployqt() {
 
@@ -83,6 +83,7 @@ function deploy_dmg() {
 
     dmg_name=`basename ${dmg}`
     dmg_icon="${bundle}/Contents/Resources/AppIcon.icns"
+    dmg_dsstore="${bundle}/Contents/Resources/DS_Store"
     dmg_temp=`mktemp -q /tmp/${dmg_name}.XXXXXX`
     if ! [ -f "$dmg_temp" ]; then
         echo "Could not create temp directory for dmg, will exit"
@@ -101,6 +102,11 @@ function deploy_dmg() {
     cp "${dmg_icon}" "$dmg_volume/.VolumeIcon.icns"
     SetFile -c icnC "$dmg_volume/.VolumeIcon.icns"
     SetFile -a C "$dmg_volume"
+
+    # dsstore
+    # must be created with the same id, use temporary dmg to modify
+    resources_dir=$(dirname ${script})/../resources
+    cp "${resources_dir}/DS_Store" "$dmg_volume/.DS_Store"
 
     # applications
     ln -s "/Applications" "$dmg_volume/Applications"

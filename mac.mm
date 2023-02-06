@@ -134,8 +134,8 @@ namespace mac
 
     QImage convertImageToQImage(CGImageRef cgImage)
     {
-        const size_t width = CGImageGetWidth(cgImage);
-        const size_t height = CGImageGetHeight(cgImage);
+        const int width = (int)CGImageGetWidth(cgImage);
+        const int height = (int)CGImageGetHeight(cgImage);
         QImage image(width, height, QImage::Format_ARGB32_Premultiplied);
         image.fill(Qt::transparent);
         // keep colorspace from incoming image ref as native values
