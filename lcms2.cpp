@@ -64,7 +64,6 @@ namespace lcms2
             cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(displayProfile.toLocal8Bit().constData(), "r");
             transform = cmsCreateTransform
             (cmsProfile, convertFormat(QImage::Format_RGB32), cmsDisplayProfile, convertFormat(QImage::Format_RGB32), INTENT_PERCEPTUAL, 0);
-
             transforms[profile].insert(displayProfile, transform);
         }
         QRgb rgb = color.rgb();

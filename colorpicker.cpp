@@ -6,18 +6,17 @@
 #include "lcms2.h"
 #include "mac.h"
 
-#include <QScreen>
-#include <QDesktopWidget>
-#include <QPainter>
-#include <QDebug>
-#include <QFileInfo>
 #include <QAction>
-#include <QMenu>
-#include <QPointer>
-#include <QDesktopServices>
-#include <QUrl>
 #include <QClipboard>
+#include <QDesktopWidget>
+#include <QDesktopServices>
 #include <QDir>
+#include <QFileInfo>
+#include <QMenu>
+#include <QPainter>
+#include <QPointer>
+#include <QScreen>
+#include <QUrl>
 
 // generated files
 #include "ui_colorpicker.h"
@@ -92,6 +91,7 @@ class ColorpickerPrivate : public QObject
         bool freeze;
         bool mouselocation;
         Format format;
+        QMutex mutex;
         QScopedPointer<Ui_Colorpicker> ui;
 };
 
@@ -119,8 +119,8 @@ ColorpickerPrivate::init()
         ui->displayInProfile->addItem
             ("Display in " + resourceFile.baseName(), QVariant::fromValue(resourceFile.filePath()));
     }
-    connect(ui->displayInProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(displayInProfileChanged(int)));
     // connect
+    connect(ui->displayInProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(displayInProfileChanged(int)));
     connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyProfileAsText, SIGNAL(triggered()), this, SLOT(copyDisplayProfile()));
@@ -157,11 +157,12 @@ ColorpickerPrivate::init()
 void
 ColorpickerPrivate::update()
 {
+    if (!mutex.tryLock())
+        return;
+    
     if (!freeze)
         cursorpos = QCursor::pos();
 
-    // match available geometry for screen,
-    // mac cursor is -1 offset from Qt
     QPoint pos(
         qMax(0, cursorpos.x() - 1),
         qMax(0, cursorpos.y() - 1)
@@ -179,9 +180,11 @@ ColorpickerPrivate::update()
         ++h;
     
     QPixmap buffer;
+    qreal dpr = 1.0;
     const QBrush blackBrush = QBrush(Qt::black);
     if (QScreen *screen = window->screen()) {
         buffer = mac::grabDisplayPixmap(x, y, w, h);
+        dpr = buffer.devicePixelRatio();
     } else {
         buffer = QPixmap(w, h);
         buffer.fill(blackBrush.color());
@@ -218,12 +221,12 @@ ColorpickerPrivate::update()
            aperture, aperture
         );
         int colorR=0, colorG=0, colorB=0;
-        QImage image = buffer.toImage();       
+        QImage image = buffer.toImage();
         for(int cx = colorRect.left(); cx <= colorRect.right(); cx++)
         {
             for(int cy = colorRect.top(); cy <= colorRect.bottom(); cy++)
             {
-                QColor pixel = image.pixel(cx, cy);
+                QColor pixel = image.pixel(cx * dpr, cy * dpr);
                 colorR += pixel.red();
                 colorG += pixel.green();
                 colorB += pixel.blue();
@@ -273,6 +276,7 @@ ColorpickerPrivate::update()
         ui->mouseLocation->setText(QString("(%1, %2)").arg(screenpos.x()).arg(screenpos.y()));
     }
     mousepos = pos;
+    mutex.unlock();
 }
 
 void
