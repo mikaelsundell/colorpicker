@@ -17,7 +17,7 @@
 #include <QPointer>
 #include <QScreen>
 #include <QUrl>
-
+#include <QDebug>
 // generated files
 #include "ui_colorpicker.h"
 
@@ -202,13 +202,15 @@ ColorpickerPrivate::update()
         p.end();
     }
 
-    QPixmap pixmap(width, height);
+    // paint with device pixel ration and apply
+    // transforms and fills in user space
+    QPixmap pixmap(width * dpr, height * dpr);
+    pixmap.setDevicePixelRatio(dpr);
     {
         QPainter p(&pixmap);
         p.save();
         p.scale(magnify, magnify);
         p.fillRect(QRect(0, 0, width, height), blackBrush);
-        p.setRenderHint(QPainter::SmoothPixmapTransform, true);
         p.drawPixmap(0, 0, buffer);
         p.setPen(QPen(Qt::NoPen));
         QRect colorRect(
