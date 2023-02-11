@@ -86,12 +86,10 @@ class ColorpickerPrivate : public QObject
         int displayNumber;
         QString displayProfile;
         QString displayInProfile;
-        QPoint mousepos;
-        QPoint cursorpos;
+        QPoint cursor;
         bool freeze;
         bool mouselocation;
         Format format;
-        QMutex mutex;
         QScopedPointer<Ui_Colorpicker> ui;
 };
 
@@ -157,21 +155,13 @@ ColorpickerPrivate::init()
 void
 ColorpickerPrivate::update()
 {
-    if (!mutex.tryLock())
+    if (freeze)
         return;
-    
-    if (!freeze)
-        cursorpos = QCursor::pos();
 
-    QPoint pos(
-        qMax(0, cursorpos.x() - 1),
-        qMax(0, cursorpos.y() - 1)
-    );
-    
     int w = int(width / float(magnify));
     int h = int(height / float(magnify));
-    int x = pos.x() - w / 2;
-    int y = pos.y() - h / 2;
+    int x = cursor.x() - w / 2;
+    int y = cursor.y() - h / 2;
     
     if (width % magnify > 0)
         ++w;
@@ -192,10 +182,12 @@ ColorpickerPrivate::update()
     QRegion geom(x, y, w, h);
     QRect screenRect;
     
-    const auto screen = QGuiApplication::screenAt(pos);
+    QScreen* screen = QGuiApplication::screenAt(cursor);
     const auto screens = QGuiApplication::screens();
     for (auto screen : screens)
+    {
         screenRect |= screen->geometry();
+    }
     geom -= screenRect;
     
     const auto rectsInRegion = geom.rectCount();
@@ -213,6 +205,7 @@ ColorpickerPrivate::update()
         QPainter p(&pixmap);
         p.save();
         p.scale(magnify, magnify);
+        p.fillRect(QRect(0, 0, width, height), blackBrush);
         p.drawPixmap(0, 0, buffer);
         p.setPen(QPen(Qt::NoPen));
         QRect colorRect(
@@ -272,11 +265,9 @@ ColorpickerPrivate::update()
     }
     // mouse location
     {
-        QPoint screenpos = cursorpos - screen->geometry().topLeft();
+        QPoint screenpos = cursor - screen->geometry().topLeft();
         ui->mouseLocation->setText(QString("(%1, %2)").arg(screenpos.x()).arg(screenpos.y()));
     }
-    mousepos = pos;
-    mutex.unlock();
 }
 
 void
@@ -584,5 +575,6 @@ Colorpicker::updateEvents(DisplayEvent event)
 {
     p->displayNumber = event.displayNumber;
     p->displayProfile = event.displayProfile;
+    p->cursor = event.cursor;
     p->update();
 }

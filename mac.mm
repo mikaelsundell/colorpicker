@@ -7,9 +7,9 @@
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 
-#include <QDebug>
 #include <QPainter>
 #include <QPaintEngine>
+#include <QDebug>
 
 namespace mac
 {
@@ -24,8 +24,8 @@ namespace mac
             UInt8* buffer = (UInt8*)CFDataGetBytePtr(dataRef);
             size_t bytesPerRow = CGImageGetBytesPerRow(cgImage);
 
-            int width = CGImageGetWidth(cgImage);
-            int height = CGImageGetHeight(cgImage);
+            int width = (int)CGImageGetWidth(cgImage);
+            int height = (int)CGImageGetHeight(cgImage);
 
             for (NSInteger x=0; x<width; x++)
             {
@@ -214,77 +214,6 @@ namespace mac
         for (uint i = 0; i < displayCount; ++i)
             painter.drawImage(destinations.at(i), images.at(i));
         return windowPixmap;
-    }
-    
-    typedef struct {
-        CFUUIDRef displayUUid;
-        CFURLRef deviceProfileUrl;
-    } ColorSync;
-
-    bool
-    colorSyncIterateCallback(CFDictionaryRef dict, void *data)
-    {
-        ColorSync* colorsync = (ColorSync *)data;
-        CFStringRef str;
-        CFUUIDRef uuid;
-        CFBooleanRef iscur;
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceClass, (const void**)&str))
-        {
-            return true;
-        }
-        if (!CFEqual(str, kColorSyncDisplayDeviceClass))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceID, (const void**)&uuid))
-        {
-            return true;
-        }
-        if (!CFEqual(uuid, colorsync->displayUUid))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileIsCurrent, (const void**)&iscur))
-        {
-            return true;
-        }
-        if (!CFBooleanGetValue(iscur))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileURL, (const void**)&(colorsync->deviceProfileUrl)))
-        {
-            return true;
-        }
-        CFRetain(colorsync->deviceProfileUrl);
-        return false;
-    }
-
-    DisplayInfo
-    grabDisplayInfo(int x, int y)
-    {
-        NSPoint point = NSMakePoint(x, y);
-        for(NSScreen* screen in NSScreen.screens)
-        {
-            if (NSMouseInRect(point, screen.frame, false))
-            {
-                DisplayInfo display;
-                NSDictionary *deviceDescription = [screen deviceDescription];
-                CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
-                display.displayNumber = displayId;
-                // colorsync callnack for device profile id
-                ColorSync colorsync;
-                colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
-                colorsync.deviceProfileUrl = NULL;
-                ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
-                CFRelease(colorsync.displayUUid);
-                CFStringRef deviceprofileurl = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
-                CFRelease(colorsync.deviceProfileUrl);
-                display.displayProfile = deviceprofileurl;
-                return display;
-            }
-        }
-        return DisplayInfo();
     }
 }
 

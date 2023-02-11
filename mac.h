@@ -7,11 +7,5 @@
 
 namespace mac
 {
-    typedef struct {
-        CFStringRef displayProfile;
-        uint32_t displayNumber;
-    } DisplayInfo;
-
-    DisplayInfo grabDisplayInfo(int x, int y);
     QPixmap grabDisplayPixmap(int x, int y, int width, int height);
 }

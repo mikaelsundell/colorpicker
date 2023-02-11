@@ -16,10 +16,8 @@ class Colorpicker : public QMainWindow
         typedef struct {
             QString displayProfile;
             int displayNumber;
-            int x;
-            int y;
+            QPoint cursor;
         } DisplayEvent;
-        
     private:
         void registerEvents();
         void updateEvents(DisplayEvent event);
