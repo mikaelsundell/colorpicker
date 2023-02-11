@@ -118,13 +118,14 @@ namespace mac
         CGColorSpaceRef colorSpace = CGImageGetColorSpace(cgImage);
         CGContextRef context = CGBitmapContextCreate((void *)image.bits(), image.width(), image.height(), 8,
                                                      image.bytesPerLine(), colorSpace, convertFormat(image));
+        
         // scale the context so that painting happens in device-independent pixels
         const qreal devicePixelRatio = image.devicePixelRatio();
         CGContextScaleCTM(context, devicePixelRatio, devicePixelRatio);
         
         CGRect rect = CGRectMake(0, 0, width, height);
         CGContextDrawImage(context, rect, cgImage);
-        CFRelease(context);
+        CGContextRelease(context);
         return image;
     }
 
