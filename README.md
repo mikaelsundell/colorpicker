@@ -13,7 +13,7 @@ Colorpicker is a mac app to pick color values on your screen. It's an extended o
 Documentation
 -------------
 
-The Colorpicker app uses macOS to create images from the display for use with color picking. The app supports display profiles, different color formats and copy to clipboard functionality. All display color processesing uses LCMS for future portability.
+The Colorpicker app uses macOS to create images from the display for use with color picking. The app supports display profiles, different color formats and copy to clipboard functionality. All display color processing uses LCMS for platform portability.
 
 **Display profile**
 
@@ -58,5 +58,5 @@ Web Resources
 Copyright
 ---------
 
-* LittleCMS           https://littlecms.com
+* LCMS                https://littlecms.com
 * App icon            https://www.flaticon.com/free-icons/color
