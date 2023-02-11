@@ -36,6 +36,11 @@ file( GLOB app_resources
     "resources/*.icc"
 )
 
+# bundle
+set (bundle_sources
+    "resources/MacOSXBundle.plist.in"
+)
+
 if (APPLE)
     if (Qt5_FOUND)
         set (MACOSX_BUNDLE_EXECUTABLE_NAME ${project_name})
@@ -51,7 +56,9 @@ if (APPLE)
         set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
         # executable
         add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources})
-        set_target_properties(${project_name} PROPERTIES OUTPUT_NAME ${project_name})
+        set_target_properties(${project_name} PROPERTIES
+            OUTPUT_NAME ${project_name}
+            MACOSX_FRAMEWORK_INFO_PLIST ${bundle_sources})
         target_compile_options (${project_name} PRIVATE -Wno-deprecated-register)
         target_include_directories (${project_name} PRIVATE ${LCMS2_INCLUDE_DIR})
         target_link_libraries (${project_name} 

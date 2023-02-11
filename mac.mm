@@ -13,6 +13,12 @@
 
 namespace mac
 {
+    void setupMac()
+    {
+        // we force dark aque no matter appearance set in system settings
+        [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
+    }
+
     namespace debug
     {
         void printImage(CGImageRef cgImage)
@@ -74,35 +80,6 @@ namespace mac
         }
     }
 
-    template <typename T>
-    class QCFType
-    {
-        public:
-            inline QCFType(const T &t = 0) : type(t) {}
-            inline QCFType(const QCFType &helper) : type(helper.type) { if (type) CFRetain(type); }
-            inline ~QCFType() { if (type) CFRelease(type); }
-            inline operator T() { return type; }
-            inline QCFType operator =(const QCFType &helper)
-            {
-                if (helper.type)
-                    CFRetain(helper.type);
-                CFTypeRef type2 = type;
-                type = helper.type;
-                if (type2)
-                    CFRelease(type2);
-                return *this;
-            }
-            inline T *operator&() { return &type; }
-            template <typename X> X as() const { return reinterpret_cast<X>(type); }
-            static QCFType constructFromGet(const T &t)
-            {
-                CFRetain(t);
-                return QCFType<T>(t);
-            }
-        protected:
-            T type;
-    };
-
     CGBitmapInfo convertFormat(const QImage &image)
     {
         CGBitmapInfo bitmapInfo = kCGImageAlphaNone;
@@ -130,7 +107,6 @@ namespace mac
         }
         return bitmapInfo;
     }
-
 
     QImage convertImageToQImage(CGImageRef cgImage)
     {

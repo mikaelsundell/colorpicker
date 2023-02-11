@@ -107,6 +107,8 @@ ColorpickerPrivate::ColorpickerPrivate()
 void
 ColorpickerPrivate::init()
 {
+    mac::setupMac();
+    // ui
     ui.reset(new Ui_Colorpicker());
     ui->setupUi(window);
     // resources

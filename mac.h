@@ -7,5 +7,6 @@
 
 namespace mac
 {
+    void setupMac();
     QPixmap grabDisplayPixmap(int x, int y, int width, int height);
 }
