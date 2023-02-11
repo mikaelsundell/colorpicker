@@ -46,7 +46,7 @@ Packaging
 The `macdeploy.sh` script will deploy mac bundle to dmg including dependencies.
 
 ```shell
-./macdeploy.sh -b <path>/Colorpicker.app -m <path>/macdeployqt -dmg <path>/Colorpicker_macOS12_<arch>.dmg
+./macdeploy.sh -b <path>/Colorpicker.app -m <path>/macdeployqt -d <path>/Colorpicker_macOS12_<arch>.dmg
 ```
 
 Web Resources
