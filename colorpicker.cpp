@@ -208,6 +208,7 @@ ColorpickerPrivate::update()
         p.save();
         p.scale(magnify, magnify);
         p.fillRect(QRect(0, 0, width, height), blackBrush);
+        p.setRenderHint(QPainter::SmoothPixmapTransform, true);
         p.drawPixmap(0, 0, buffer);
         p.setPen(QPen(Qt::NoPen));
         QRect colorRect(
