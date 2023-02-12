@@ -73,13 +73,12 @@ class ColorpickerPrivate : public QObject
     public:
         class About : public QDialog
         {
-            public:
-                About()
-                {
-                    QScopedPointer<Ui_About> about;
-                    about.reset(new Ui_About());
-                    about->setupUi(this);
-                }
+            public: About()
+            {
+                QScopedPointer<Ui_About> about;
+                about.reset(new Ui_About());
+                about->setupUi(this);
+            }
         };
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
