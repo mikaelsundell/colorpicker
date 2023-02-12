@@ -17,7 +17,7 @@
 #include <QPointer>
 #include <QScreen>
 #include <QUrl>
-#include <QDebug>
+
 // generated files
 #include "ui_about.h"
 #include "ui_colorpicker.h"
@@ -258,7 +258,7 @@ ColorpickerPrivate::update()
     // display in profile
     if (displayInProfile.count() > 0)
     {
-        color = lcms2::convertColor(color, displayProfile, displayInProfile);
+        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), displayProfile, displayInProfile));
     }
     // display
     {
