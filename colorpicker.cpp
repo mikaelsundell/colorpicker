@@ -19,6 +19,7 @@
 #include <QUrl>
 #include <QDebug>
 // generated files
+#include "ui_about.h"
 #include "ui_colorpicker.h"
 
 class ColorpickerPrivate : public QObject
@@ -65,10 +66,21 @@ class ColorpickerPrivate : public QObject
         void toggleMouseLocation();
         void displayInProfileChanged(int index);
         void apertureChanged(int value);
+        void about();
         void openGithubReadme();
         void openGithubIssues();
     
     public:
+        class About : public QDialog
+        {
+            public:
+                About()
+                {
+                    QScopedPointer<Ui_About> about;
+                    about.reset(new Ui_About());
+                    about->setupUi(this);
+                }
+        };
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
         QString formatRgb(QColor color, RgbChannel channel);
@@ -150,6 +162,7 @@ ColorpickerPrivate::init()
     }
     connect(ui->toggleMouseLocation, SIGNAL(triggered()), this, SLOT(toggleMouseLocation()));
     connect(ui->aperture, SIGNAL(valueChanged(int)), this, SLOT(apertureChanged(int)));
+    connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
     connect(ui->openGithubIssues, SIGNAL(triggered()), this, SLOT(openGithubIssues()));
 }
@@ -417,6 +430,12 @@ ColorpickerPrivate::apertureChanged(int value)
     update();
 }
 
+void
+ColorpickerPrivate::about()
+{
+    QPointer<About> about = new About();
+    about->show();
+}
 
 void
 ColorpickerPrivate::openGithubReadme()

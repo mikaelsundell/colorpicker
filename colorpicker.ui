@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>381</width>
-    <height>213</height>
+    <width>384</width>
+    <height>215</height>
    </rect>
   </property>
   <property name="palette">
@@ -492,7 +492,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>381</width>
+     <width>384</width>
      <height>24</height>
     </rect>
    </property>
@@ -543,6 +543,7 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="about"/>
     <addaction name="openGithubReadme"/>
     <addaction name="openGithubIssues"/>
    </widget>
@@ -758,6 +759,11 @@
    </property>
    <property name="shortcut">
     <string>I</string>
+   </property>
+  </action>
+  <action name="about">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
