@@ -8,5 +8,5 @@
 
 namespace lcms2
 {
-    QColor convertColor(QColor color, QString profile, QString displayProfile);
+    QRgb convertColor(QRgb color, QString profile, QString displayProfile);
 }

@@ -1,9 +1,9 @@
 // Copyright 2022-present Contributors to the colorpicker project.
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/mikaelsundell/colorpicker
+
 #include "lcms2.h"
 #include <QMap>
-#include <QDebug>
 
 namespace lcms2
 {
@@ -42,7 +42,7 @@ namespace lcms2
         }
     }
 
-    QColor convertColor(QColor color, QString profile, QString displayProfile)
+    QRgb convertColor(QRgb color, QString profile, QString displayProfile)
     {
         static QMap<QString, QMap<QString, cmsHTRANSFORM> > transforms;
         cmsHTRANSFORM transform = nullptr;
@@ -66,9 +66,8 @@ namespace lcms2
             (cmsProfile, convertFormat(QImage::Format_RGB32), cmsDisplayProfile, convertFormat(QImage::Format_RGB32), INTENT_PERCEPTUAL, 0);
             transforms[profile].insert(displayProfile, transform);
         }
-        QRgb rgb = color.rgb();
-        QRgb convertRgb;
-        cmsDoTransform(transform, (const void*)&rgb, (void*)&convertRgb, sizeof(QRgb));
-        return QColor(convertRgb);
+        QRgb transformColor;
+        cmsDoTransform(transform, (const void*)&color, (void*)&transformColor, sizeof(QRgb));
+        return transformColor;
     }
 }
