@@ -11,6 +11,7 @@ project( ${project_name} )
 set (qt5_modules Core Gui Widgets OpenGL)
 find_package (Qt5 COMPONENTS ${qt5_modules})
 set (CMAKE_AUTOMOC ON)
+set (CMAKE_AUTORCC ON)
 set (CMAKE_AUTOUIC ON)
 if (Qt5_POSITION_INDEPENDENT_CODE)
     set (CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -27,7 +28,9 @@ set (app_sources
     mac.mm
     mac.h
     main.cpp
+    about.ui
     colorpicker.ui
+    colorpicker.qrc
 )
 
 # resources
