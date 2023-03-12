@@ -6,7 +6,7 @@ Readme for colorpicker
 Introduction
 ------------
 
-![Screenshot](https://github.com/mikaelsundell/colorpicker/blob/78dcd7242a1d9b846b25acae716aa9870f41c767/resources/Colorpicker.png)
+![Screenshot](https://github.com/mikaelsundell/colorpicker/blob/49614624b8a08d7d7cb96410e4f97cf3c22fb32d/resources/Colorpicker.png)
 
 Colorpicker is a mac app to pick color values on your screen. It's an extended opensource version of macOS Digital Colour Meter app.
 
