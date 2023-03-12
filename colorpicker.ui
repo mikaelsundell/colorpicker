@@ -838,7 +838,7 @@
              </spacer>
             </item>
             <item>
-             <widget class="QCheckBox" name="iqlines">
+             <widget class="QCheckBox" name="iqline">
               <property name="text">
                <string/>
               </property>

@@ -200,7 +200,7 @@ ColorpickerPrivate::init()
     connect(ui->markerSize, SIGNAL(valueChanged(int)), this, SLOT(markerSizeChanged(int)));
     connect(ui->backgroundOpacity, SIGNAL(valueChanged(int)), this, SLOT(backgroundOpacityChanged(int)));
     connect(ui->angle, SIGNAL(valueChanged(int)), this, SLOT(angleChanged(int)));
-    connect(ui->iqlines, SIGNAL(stateChanged(int)), this, SLOT(iqlinesChanged(int)));
+    connect(ui->iqline, SIGNAL(stateChanged(int)), this, SLOT(iqlineChanged(int)));
     connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
     connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
     connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
@@ -299,6 +299,11 @@ ColorpickerPrivate::update()
         p.drawRect(frameRect);
         p.end();
     }
+    // display in profile
+    if (displayInProfile.count() > 0)
+    {
+        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), state.displayProfile, displayInProfile));
+    }
     // state
     {
         state = State{
@@ -317,11 +322,6 @@ void
 ColorpickerPrivate::view()
 {
     ui->view->setPixmap(state.pixmap);
-    // display in profile
-    if (displayInProfile.count() > 0)
-    {
-        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), state.displayProfile, displayInProfile));
-    }
     // display
     {
         ui->display->setText(QString("Display #%1").arg(state.displayNumber));
