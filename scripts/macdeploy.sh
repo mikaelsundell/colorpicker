@@ -104,7 +104,7 @@ function deploy_dmg() {
     SetFile -a C "$dmg_volume"
 
     # dsstore
-    # must be created with the same id, use temporary dmg to modify
+    # must be created with the same id, use temporary dmg to modify and copy afterwards
     resources_dir=$(dirname ${script})/../resources
     cp "${resources_dir}/DS_Store" "$dmg_volume/.DS_Store"
 

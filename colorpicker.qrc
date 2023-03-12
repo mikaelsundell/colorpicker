@@ -1,5 +1,6 @@
 <RCC>
-  <qresource prefix="Icons">
-    <file>resources/AppIcon.png</file>
+  <qresource prefix="icons">
+    <file>resources/Picker.png</file>
+    <file>resources/Clear.png</file>
   </qresource>
 </RCC>
