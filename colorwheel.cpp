@@ -38,6 +38,8 @@ class ColorwheelPrivate : public QObject
         qreal markerSize;
         qreal borderOpacity;
         qreal backgroundOpacity;
+        bool iqlineVisible;
+        bool saturationVisible;
         int selected;
         QList<QColor> colors;
         QList<State> states;
@@ -51,6 +53,8 @@ ColorwheelPrivate::ColorwheelPrivate()
 , markerSize(0.5)
 , borderOpacity(1.0)
 , backgroundOpacity(0.5)
+, iqlineVisible(true)
+, saturationVisible(true)
 {
 }
 
@@ -166,6 +170,7 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // iq lines, roughly -33% from yuv vectorscope
+    if (iqlineVisible)
     {
         p.save();
         p.setPen(QPen(brush, stroke/2));
@@ -221,6 +226,7 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // iq saturation
+    if (saturationVisible)
     {
         p.save();
         p.setPen(QPen(brush, stroke/2));
@@ -437,6 +443,34 @@ void
 Colorwheel::setMarkerSize(qreal size)
 {
     p->markerSize = size;
+    p->update();
+    update();
+}
+
+bool
+Colorwheel::isSaturationVisible() const
+{
+    return p->saturationVisible;
+}
+
+void
+Colorwheel::setSaturationVisible(bool visible)
+{
+    p->saturationVisible = visible;
+    p->update();
+    update();
+}
+
+bool
+Colorwheel::isIQLineVisible() const
+{
+    return p->iqlineVisible;
+}
+
+void
+Colorwheel::setIQLineVisible(bool visible)
+{
+    p->iqlineVisible = visible;
     p->update();
     update();
 }
