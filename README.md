@@ -19,6 +19,10 @@ The Colorpicker app uses macOS to create images from the display for use with co
 
 The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces, transformed from the display profile .icc.
 
+**Picking colors**
+
+Use Pick icon or `Edit > Pick [P]` to pick colors from any screen and window and each color is stored in the color wheel, use right mouse button or escape to exit picker. Use `Aperture`, `Marker size`, `Background opacity` and `Color angle`to adjust the color wheel to your preference. To go back and check picked colors use `View > Freeze [F]` and color will be clickable in the color wheel.
+
 **Color processing in LCMS**
 
 LCMS is a popular color management system for use in open source projects. LCMS closely matches ColorSync, AdobeACE, Reference ICC and other color engines. There may be variations, different engines should roughly match.
