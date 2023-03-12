@@ -52,7 +52,7 @@ class ColorpickerPrivate : public QObject
         bool eventFilter(QObject* object, QEvent* event);
     
     public Q_SLOTS:
-        void toggleFreeze();
+        void toggleFreeze(bool checked);
         void pick();
         void togglePick();
         void copyRGB();
@@ -170,7 +170,7 @@ ColorpickerPrivate::init()
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyProfileAsText, SIGNAL(triggered()), this, SLOT(copyDisplayProfile()));
     connect(ui->copyColorAsBitmap, SIGNAL(triggered()), this, SLOT(copyColor()));
-    connect(ui->freeze, SIGNAL(triggered()), this, SLOT(toggleFreeze()));
+    connect(ui->freeze, SIGNAL(toggled(bool)), this, SLOT(toggleFreeze(bool)));
     connect(ui->as8bitValues, SIGNAL(triggered()), this, SLOT(as8bit()));
     connect(ui->as10bitValues, SIGNAL(triggered()), this, SLOT(as10bit()));
     connect(ui->asFloatValues, SIGNAL(triggered()), this, SLOT(asFloat()));
@@ -381,17 +381,12 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 }
 
 void
-ColorpickerPrivate::toggleFreeze()
+ColorpickerPrivate::toggleFreeze(bool checked)
 {
-    if (freeze)
-    {
-        freeze = false;
-    }
-    else
-    {
+    if (checked)
         ui->widget->setColors(colors);
-        freeze = true;
-    }
+    
+    freeze = checked;
 }
 
 void
@@ -414,9 +409,15 @@ ColorpickerPrivate::togglePick()
     }
     else
     {
-        picker->setColor(color);
-        picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
-        picker->show();
+        if (ui->freeze->isChecked())
+            ui->freeze->setChecked(false);
+        
+        // picker
+        {
+            picker->setColor(color);
+            picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
+            picker->show();
+        }
     }
 }
 
@@ -579,7 +580,9 @@ ColorpickerPrivate::clear()
 {
     colors.clear();
     states.clear();
-    freeze = false;
+    if (ui->freeze->isChecked())
+        ui->freeze->setChecked(false);
+
     update();
 }
 
