@@ -10,7 +10,7 @@
 
 #include <QScreen>
 #include <QGuiApplication>
-#include <QDebug>
+#include <QApplication>
 
 namespace
 {
@@ -128,6 +128,7 @@ Colorpicker::registerEvents()
         }
         return event;
     }];
+    
     // copies of events the system posts to other applications.
     [NSEvent addGlobalMonitorForEventsMatchingMask:
      (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)

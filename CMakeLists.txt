@@ -23,11 +23,15 @@ set (app_sources
     colorpicker.cpp
     colorpicker.mm
     colorpicker.h
+    colorwheel.cpp
+    colorwheel.h
     lcms2.cpp
     lcms2.h
     mac.mm
     mac.h
     main.cpp
+    picker.h
+    picker.cpp
     about.ui
     colorpicker.ui
     colorpicker.qrc
@@ -37,6 +41,7 @@ set (app_sources
 file( GLOB app_resources
     "resources/*.icns" 
     "resources/*.icc"
+    "resources/*.css"
 )
 
 # bundle

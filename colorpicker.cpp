@@ -3,6 +3,7 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #include "colorpicker.h"
+#include "picker.h"
 #include "lcms2.h"
 #include "mac.h"
 
@@ -13,6 +14,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
 #include <QScreen>
@@ -46,9 +48,13 @@ class ColorpickerPrivate : public QObject
         ColorpickerPrivate();
         void init();
         void update();
+        void view();
+        bool eventFilter(QObject* object, QEvent* event);
     
     public Q_SLOTS:
         void toggleFreeze();
+        void pick();
+        void togglePick();
         void copyRGB();
         void copyHSV();
         void copyDisplayProfile();
@@ -66,6 +72,10 @@ class ColorpickerPrivate : public QObject
         void toggleMouseLocation();
         void displayInProfileChanged(int index);
         void apertureChanged(int value);
+        void markerSizeChanged(int value);
+        void backgroundOpacityChanged(int value);
+        void angleChanged(int value);
+        void clear();
         void about();
         void openGithubReadme();
         void openGithubIssues();
@@ -80,6 +90,16 @@ class ColorpickerPrivate : public QObject
                 about->setupUi(this);
             }
         };
+        class State
+        {
+            public:
+            QColor color;
+            QPixmap pixmap;
+            QPoint cursor;
+            QScreen* screen;
+            int displayNumber;
+            QString displayProfile;
+        };
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
         QString formatRgb(QColor color, RgbChannel channel);
@@ -88,8 +108,8 @@ class ColorpickerPrivate : public QObject
         QString asHex(int channel);
         QString asPercentage(float channel);
         QString asDegree(float channel);
-        QPointer<QMainWindow> window;
         QColor color;
+        QList<QColor> colors;
         int width;
         int height;
         int aperture;
@@ -101,13 +121,17 @@ class ColorpickerPrivate : public QObject
         bool freeze;
         bool mouselocation;
         Format format;
+        State state;
+        QList<State> states;
+        QPointer<Colorpicker> window;
+        QScopedPointer<Picker> picker;
         QScopedPointer<Ui_Colorpicker> ui;
 };
 
 ColorpickerPrivate::ColorpickerPrivate()
 : width(128)
 , height(128)
-, aperture(1)
+, aperture(50)
 , magnify(1)
 , freeze(false)
 , mouselocation(true)
@@ -122,6 +146,8 @@ ColorpickerPrivate::init()
     // ui
     ui.reset(new Ui_Colorpicker());
     ui->setupUi(window);
+    // picker
+    picker.reset(new Picker());
     // resources
     QDir resources(QApplication::applicationDirPath() + "/../Resources");
     ui->displayInProfile->insertSeparator(ui->displayInProfile->count());
@@ -130,8 +156,16 @@ ColorpickerPrivate::init()
         ui->displayInProfile->addItem
             ("Display in " + resourceFile.baseName(), QVariant::fromValue(resourceFile.filePath()));
     }
+    // stylesheet
+    QFile stylesheet(resources.absolutePath() + "/App.css");
+    stylesheet.open(QFile::ReadOnly);
+    qApp->setStyleSheet(stylesheet.readAll());
+    // event filter
+    window->installEventFilter(this);
     // connect
     connect(ui->displayInProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(displayInProfileChanged(int)));
+    connect(ui->pick, SIGNAL(triggered()), this, SLOT(togglePick()));
+    connect(ui->togglePick, SIGNAL(pressed()), this, SLOT(togglePick()));
     connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyProfileAsText, SIGNAL(triggered()), this, SLOT(copyDisplayProfile()));
@@ -161,9 +195,16 @@ ColorpickerPrivate::init()
     }
     connect(ui->toggleMouseLocation, SIGNAL(triggered()), this, SLOT(toggleMouseLocation()));
     connect(ui->aperture, SIGNAL(valueChanged(int)), this, SLOT(apertureChanged(int)));
+    connect(ui->markerSize, SIGNAL(valueChanged(int)), this, SLOT(markerSizeChanged(int)));
+    connect(ui->backgroundOpacity, SIGNAL(valueChanged(int)), this, SLOT(backgroundOpacityChanged(int)));
+    connect(ui->angle, SIGNAL(valueChanged(int)), this, SLOT(angleChanged(int)));
+    connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
     connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
     connect(ui->openGithubIssues, SIGNAL(triggered()), this, SLOT(openGithubIssues()));
+    connect(picker.get(), SIGNAL(triggered()), this, SLOT(pick()));
+    // pixmaps
+    qApp->setAttribute(Qt::AA_UseHighDpiPixmaps);
 }
 
 void
@@ -171,7 +212,7 @@ ColorpickerPrivate::update()
 {
     if (freeze)
         return;
-
+    
     int w = int(width / float(magnify));
     int h = int(height / float(magnify));
     int x = cursor.x() - w / 2;
@@ -187,7 +228,7 @@ ColorpickerPrivate::update()
     qreal dpr = 1.0;
     const QBrush blackBrush = QBrush(Qt::black);
     if (QScreen *screen = window->screen()) {
-        buffer = mac::grabDisplayPixmap(x, y, w, h);
+        buffer = mac::grabDisplayPixmap(x, y, w, h, picker->winId());
         dpr = buffer.devicePixelRatio();
     } else {
         buffer = QPixmap(w, h);
@@ -254,46 +295,129 @@ ColorpickerPrivate::update()
         p.drawRect(frameRect);
         p.end();
     }
-    ui->view->setPixmap(pixmap);
+    // state
+    {
+        state = State{
+          color,
+          pixmap,
+          cursor,
+          screen,
+          displayNumber,
+          displayProfile
+        };
+    }
+    view();
+}
+
+void
+ColorpickerPrivate::view()
+{
+    ui->view->setPixmap(state.pixmap);
     // display in profile
     if (displayInProfile.count() > 0)
     {
-        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), displayProfile, displayInProfile));
+        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), state.displayProfile, displayInProfile));
     }
     // display
     {
-        ui->display->setText(QString("Display #%1").arg(displayNumber));
+        ui->display->setText(QString("Display #%1").arg(state.displayNumber));
         QFontMetrics metrics(ui->displayProfile->font());
-        QString text = metrics.elidedText(QFileInfo(displayProfile).fileName(), Qt::ElideRight, ui->displayProfile->width());
+        QString text = metrics.elidedText(QFileInfo(state.displayProfile).fileName(), Qt::ElideRight, ui->displayProfile->width());
         ui->displayProfile->setText(text);
     }
     // rgb
     {
-        ui->r->setText(QString("%1").arg(formatRgb(color, RgbChannel::R)));
-        ui->g->setText(QString("%1").arg(formatRgb(color, RgbChannel::G)));
-        ui->b->setText(QString("%1").arg(formatRgb(color, RgbChannel::B)));
+        ui->r->setText(QString("%1").arg(formatRgb(state.color, RgbChannel::R)));
+        ui->g->setText(QString("%1").arg(formatRgb(state.color, RgbChannel::G)));
+        ui->b->setText(QString("%1").arg(formatRgb(state.color, RgbChannel::B)));
     }
     // hsv
     {
         QColor hsv = color.toHsv();
-        ui->h->setText(QString("%1").arg(formatHsv(color, HsvChannel::H)));
-        ui->s->setText(QString("%1").arg(formatHsv(color, HsvChannel::S)));
-        ui->v->setText(QString("%1").arg(formatHsv(color, HsvChannel::V)));
+        ui->h->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::H)));
+        ui->s->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::S)));
+        ui->v->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::V)));
     }
     // mouse location
     {
-        QPoint screenpos = cursor - screen->geometry().topLeft();
+        QPoint screenpos = state.cursor - state.screen->geometry().topLeft();
         ui->mouseLocation->setText(QString("(%1, %2)").arg(screenpos.x()).arg(screenpos.y()));
     }
+    // colorwheel
+    {
+        QList<QColor> active = QList<QColor>(colors);
+        active.push_back(state.color);
+        ui->widget->setColors(active);
+    }
+    // picker
+    if (picker->isVisible())
+    {
+        picker->setColor(state.color);
+        picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
+    }
+}
+
+bool
+ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
+{
+    if (freeze)
+    {
+        if (event->type() == QEvent::QEvent::MouseButtonPress)
+        {
+            QMouseEvent* mouseEvent = (QMouseEvent*)event;
+            if (mouseEvent->button() == Qt::LeftButton) {
+                int selected = ui->widget->colorAt(
+                    ui->widget->mapFrom(window, mouseEvent->pos()));
+                
+                if (selected >= 0) {
+                    ui->widget->setSelected(selected);
+                    state = states[selected];
+                    view();
+                }
+            }
+        }
+    }
+    return false;
 }
 
 void
 ColorpickerPrivate::toggleFreeze()
 {
     if (freeze)
+    {
         freeze = false;
+    }
     else
+    {
+        ui->widget->setColors(colors);
         freeze = true;
+    }
+}
+
+void
+ColorpickerPrivate::pick()
+{
+    colors.push_back(color);
+    // state
+    {
+        update();
+        states.push_back(state);
+    }
+}
+
+void
+ColorpickerPrivate::togglePick()
+{
+    if (picker->isVisible())
+    {
+        picker->hide();
+    }
+    else
+    {
+        picker->setColor(color);
+        picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
+        picker->show();
+    }
 }
 
 void
@@ -426,6 +550,36 @@ void
 ColorpickerPrivate::apertureChanged(int value)
 {
     aperture = value;
+    update();
+}
+
+void
+ColorpickerPrivate::markerSizeChanged(int value)
+{
+    ui->widget->setMarkerSize((qreal)value / ui->markerSize->maximum());
+    update();
+}
+
+void
+ColorpickerPrivate::backgroundOpacityChanged(int value)
+{
+    ui->widget->setBackgroundOpacity((qreal)value / ui->backgroundOpacity->maximum());
+    update();
+}
+
+void
+ColorpickerPrivate::angleChanged(int value)
+{
+    ui->widget->setAngle((qreal)value / ui->angle->maximum());
+    update();
+}
+
+void
+ColorpickerPrivate::clear()
+{
+    colors.clear();
+    states.clear();
+    freeze = false;
     update();
 }
 
