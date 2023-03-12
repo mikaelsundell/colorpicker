@@ -75,6 +75,8 @@ class ColorpickerPrivate : public QObject
         void markerSizeChanged(int value);
         void backgroundOpacityChanged(int value);
         void angleChanged(int value);
+        void iqlineChanged(int state);
+        void saturationChanged(int state);
         void clear();
         void about();
         void openGithubReadme();
@@ -198,6 +200,8 @@ ColorpickerPrivate::init()
     connect(ui->markerSize, SIGNAL(valueChanged(int)), this, SLOT(markerSizeChanged(int)));
     connect(ui->backgroundOpacity, SIGNAL(valueChanged(int)), this, SLOT(backgroundOpacityChanged(int)));
     connect(ui->angle, SIGNAL(valueChanged(int)), this, SLOT(angleChanged(int)));
+    connect(ui->iqlines, SIGNAL(stateChanged(int)), this, SLOT(iqlinesChanged(int)));
+    connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
     connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
     connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
@@ -573,6 +577,24 @@ ColorpickerPrivate::angleChanged(int value)
 {
     ui->widget->setAngle((qreal)value / ui->angle->maximum());
     update();
+}
+
+void
+ColorpickerPrivate::iqlineChanged(int state)
+{
+    if (state == Qt::Checked)
+        ui->widget->setIQLineVisible(true);
+    else
+        ui->widget->setIQLineVisible(false);
+}
+
+void
+ColorpickerPrivate::saturationChanged(int state)
+{
+    if (state == Qt::Checked)
+        ui->widget->setSaturationVisible(true);
+    else
+        ui->widget->setSaturationVisible(false);
 }
 
 void

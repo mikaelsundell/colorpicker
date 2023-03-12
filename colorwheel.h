@@ -18,6 +18,8 @@ class Colorwheel : public QWidget
         qreal backgroundOpacity() const;
         QList<QColor> colors();
         int colorAt(const QPoint& point) const;
+        bool isSaturationVisible() const;
+        bool isIQLineVisible() const;
         int selected() const;
     
     public Q_SLOTS:
@@ -25,7 +27,9 @@ class Colorwheel : public QWidget
         void setBackgroundOpacity(qreal opacity);
         void setBorderOpacity(qreal opacity);
         void setColors(const QList<QColor>& colors);
+        void setIQLineVisible(bool visible);
         void setMarkerSize(qreal size);
+        void setSaturationVisible(bool visible);
         void setSelected(int selected);
     
     protected:
