@@ -6,7 +6,7 @@ Readme for colorpicker
 Introduction
 ------------
 
-![Screenshot](https://github.com/mikaelsundell/colorpicker/blob/78dcd7242a1d9b846b25acae716aa9870f41c767/resources/Colorpicker.png)
+![Screenshot](https://github.com/mikaelsundell/colorpicker/blob/49614624b8a08d7d7cb96410e4f97cf3c22fb32d/resources/Colorpicker.png)
 
 Colorpicker is a mac app to pick color values on your screen. It's an extended opensource version of macOS Digital Colour Meter app.
 
@@ -18,6 +18,10 @@ The Colorpicker app uses macOS to create images from the display for use with co
 **Display profile**
 
 The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces, transformed from the display profile .icc.
+
+**Picking colors**
+
+Use Pick icon or `Edit > Pick [P]` to pick colors from any screen and window and each color is stored in the color wheel, use right mouse button or escape to exit picker. Use `Aperture`, `Marker size`, `Background opacity` and `Color angle`to adjust the color wheel to your preference. To go back and check picked colors use `View > Freeze [F]` and color will be clickable in the color wheel.
 
 **Color processing in LCMS**
 
