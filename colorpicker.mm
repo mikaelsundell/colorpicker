@@ -109,22 +109,23 @@ Colorpicker::registerEvents()
        (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
     {
-        NSPoint point = [NSEvent mouseLocation];
-        QPoint mouseLocation = convertMouseLocation(point);
-        if (mouseLocation != lastpos && mutex.tryLock())
-        {
-            DisplayInfo display = grabDisplayInfo(point);
-            updateEvents(
-                Colorpicker::DisplayEvent() =
-                {
-                    QString::fromCFString(display.displayProfile),
-                    int(display.displayNumber),
-                    mouseLocation
-                }
-            );
-            lastpos = mouseLocation;
-            mutex.unlock();
+        if (active()) {
+            NSPoint point = [NSEvent mouseLocation];
+            QPoint mouseLocation = convertMouseLocation(point);
+            if (mouseLocation != lastpos && mutex.tryLock()) {
+                DisplayInfo display = grabDisplayInfo(point);
+                updateEvents(
+                    Colorpicker::DisplayEvent() =
+                    {
+                        QString::fromCFString(display.displayProfile),
+                        int(display.displayNumber),
+                        mouseLocation
+                    }
+                );
+                lastpos = mouseLocation;
+                mutex.unlock();
 
+            }
         }
         return event;
     }];
@@ -134,21 +135,22 @@ Colorpicker::registerEvents()
      (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
      {
-        NSPoint point = [NSEvent mouseLocation];
-        QPoint mouseLocation = convertMouseLocation(point);
-        if (mouseLocation != lastpos && mutex.tryLock())
-        {
-            DisplayInfo display = grabDisplayInfo(point);
-            updateEvents(
-                Colorpicker::DisplayEvent() =
-                {
-                    QString::fromCFString(display.displayProfile),
-                    int(display.displayNumber),
-                    mouseLocation
-                }
-            );
-            lastpos = mouseLocation;
-            mutex.unlock();
+        if (active()) {
+            NSPoint point = [NSEvent mouseLocation];
+            QPoint mouseLocation = convertMouseLocation(point);
+            if (mouseLocation != lastpos && mutex.tryLock()) {
+                DisplayInfo display = grabDisplayInfo(point);
+                updateEvents(
+                    Colorpicker::DisplayEvent() =
+                    {
+                        QString::fromCFString(display.displayProfile),
+                        int(display.displayNumber),
+                        mouseLocation
+                    }
+                );
+                lastpos = mouseLocation;
+                mutex.unlock();
+            }
         }
     }];
 }

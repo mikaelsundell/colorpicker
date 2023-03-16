@@ -1024,10 +1024,10 @@ Colorpicker::~Colorpicker()
 {
 }
 
-void
-Colorpicker::update()
+bool
+Colorpicker::active() const
 {
-    p->update();
+    return p->active;
 }
 
 void
