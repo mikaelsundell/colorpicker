@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>387</width>
+    <width>377</width>
     <height>749</height>
    </rect>
   </property>
@@ -239,16 +239,28 @@
                  </spacer>
                 </item>
                 <item>
-                 <widget class="QToolButton" name="togglePick">
+                 <widget class="QToolButton" name="toggleActive">
                   <property name="text">
                    <string>Active</string>
                   </property>
                   <property name="icon">
                    <iconset resource="colorpicker.qrc">
-                    <normaloff>:/icons/resources/Picker.png</normaloff>:/icons/resources/Picker.png</iconset>
+                    <normaloff>:/icons/resources/Active.png</normaloff>:/icons/resources/Active.png</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>16</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="shortcut">
+                   <string>A</string>
                   </property>
                   <property name="checkable">
-                   <bool>false</bool>
+                   <bool>true</bool>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
                   </property>
                  </widget>
                 </item>
@@ -700,7 +712,7 @@
               <item>
                <widget class="QToolButton" name="clear">
                 <property name="text">
-                 <string>...</string>
+                 <string/>
                 </property>
                 <property name="icon">
                  <iconset resource="colorpicker.qrc">
@@ -708,8 +720,41 @@
                 </property>
                 <property name="iconSize">
                  <size>
-                  <width>12</width>
-                  <height>12</height>
+                  <width>16</width>
+                  <height>16</height>
+                 </size>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="horizontalSpacer_7">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Minimum</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>5</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QToolButton" name="togglePick">
+                <property name="text">
+                 <string>...</string>
+                </property>
+                <property name="icon">
+                 <iconset resource="colorpicker.qrc">
+                  <normaloff>:/icons/resources/Picker.png</normaloff>:/icons/resources/Picker.png</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>16</width>
+                  <height>16</height>
                  </size>
                 </property>
                </widget>
@@ -818,37 +863,14 @@
          <item>
           <widget class="QWidget" name="widget_9" native="true">
            <layout class="QHBoxLayout" name="horizontalLayout_9">
+            <property name="spacing">
+             <number>12</number>
+            </property>
             <property name="topMargin">
              <number>28</number>
             </property>
             <item>
-             <spacer name="horizontalSpacer_7">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Preferred</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>5</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item>
              <widget class="QCheckBox" name="iqline">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_4">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
@@ -857,7 +879,27 @@
                </font>
               </property>
               <property name="text">
-               <string> IQ Line</string>
+               <string>IQ Line</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="saturation">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Saturation</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -866,46 +908,27 @@
               <property name="orientation">
                <enum>Qt::Horizontal</enum>
               </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
               <property name="sizeHint" stdset="0">
                <size>
-                <width>15</width>
+                <width>40</width>
                 <height>20</height>
                </size>
               </property>
              </spacer>
             </item>
             <item>
-             <widget class="QCheckBox" name="saturation">
+             <widget class="QToolButton" name="pdf">
               <property name="text">
                <string/>
               </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_5">
-              <property name="font">
-               <font>
-                <pointsize>10</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string> Saturation</string>
+              <property name="icon">
+               <iconset resource="colorpicker.qrc">
+                <normaloff>:/icons/resources/Pdf.png</normaloff>:/icons/resources/Pdf.png</iconset>
               </property>
              </widget>
             </item>
            </layout>
           </widget>
-         </item>
-         <item>
-          <widget class="QWidget" name="widget_10" native="true"/>
          </item>
         </layout>
        </item>
@@ -919,7 +942,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>387</width>
+     <width>377</width>
      <height>24</height>
     </rect>
    </property>
@@ -948,7 +971,7 @@
      <addaction name="magnify4x"/>
      <addaction name="magnify5x"/>
     </widget>
-    <addaction name="freeze"/>
+    <addaction name="active"/>
     <addaction name="separator"/>
     <addaction name="displayValues"/>
     <addaction name="separator"/>
@@ -1004,18 +1027,22 @@
     <string>B</string>
    </property>
   </action>
-  <action name="freeze">
+  <action name="active">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="checked">
-    <bool>false</bool>
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="colorpicker.qrc">
+     <normaloff>:/icons/resources/Active.png</normaloff>:/icons/resources/Active.png</iconset>
    </property>
    <property name="text">
-    <string>Freeze</string>
+    <string>Active</string>
    </property>
    <property name="shortcut">
-    <string>F</string>
+    <string/>
    </property>
   </action>
   <action name="toggleMouseLocation">

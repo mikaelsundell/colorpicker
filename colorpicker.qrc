@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="icons">
+    <file>resources/Active.png</file>
+    <file>resources/Pdf.png</file>
     <file>resources/Picker.png</file>
     <file>resources/Clear.png</file>
   </qresource>
