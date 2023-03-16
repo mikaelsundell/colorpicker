@@ -20,6 +20,7 @@ class Picker : public QWidget
     
     Q_SIGNALS:
         void triggered();
+        void closed();
     
     private:
         QScopedPointer<PickerPrivate> p;

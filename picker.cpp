@@ -86,6 +86,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         if (keyEvent->key() == Qt::Key_Escape)
         {
             widget->hide();
+            widget->closed();
         }
     }
     
@@ -98,6 +99,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         
         if (mouseEvent->button() == Qt::RightButton) {
             widget->hide();
+            widget->closed();
         }
     }
 }

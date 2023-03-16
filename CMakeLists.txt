@@ -8,7 +8,7 @@ set( project_name "Colorpicker" )
 project( ${project_name} )
 
 # packages
-set (qt5_modules Core Gui Widgets OpenGL)
+set (qt5_modules Core PrintSupport Gui Widgets OpenGL)
 find_package (Qt5 COMPONENTS ${qt5_modules})
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTORCC ON)
@@ -42,6 +42,7 @@ file( GLOB app_resources
     "resources/*.icns" 
     "resources/*.icc"
     "resources/*.css"
+    "resources/App*.png"
 )
 
 # bundle
@@ -70,7 +71,7 @@ if (APPLE)
         target_compile_options (${project_name} PRIVATE -Wno-deprecated-register)
         target_include_directories (${project_name} PRIVATE ${LCMS2_INCLUDE_DIR})
         target_link_libraries (${project_name} 
-            Qt5::Core Qt5::Gui Qt5::Widgets 
+            Qt5::Core Qt5::PrintSupport Qt5::Gui Qt5::Widgets 
             ${LCMS2_LIBRARY}
             "-framework CoreFoundation"
             "-framework AppKit")

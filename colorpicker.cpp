@@ -8,7 +8,9 @@
 #include "mac.h"
 
 #include <QAction>
+#include <QBuffer>
 #include <QClipboard>
+#include <QDateTime>
 #include <QDesktopWidget>
 #include <QDesktopServices>
 #include <QDir>
@@ -17,7 +19,10 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
+#include <QPrinter>
 #include <QScreen>
+#include <QTextDocument>
+#include <QTextTable>
 #include <QUrl>
 
 // generated files
@@ -49,11 +54,14 @@ class ColorpickerPrivate : public QObject
         void init();
         void update();
         void view();
+        void activate();
+        void deactivate();
         bool eventFilter(QObject* object, QEvent* event);
     
     public Q_SLOTS:
-        void toggleFreeze(bool checked);
+        void toggleActive(bool checked);
         void pick();
+        void closed();
         void togglePick();
         void copyRGB();
         void copyHSV();
@@ -77,6 +85,7 @@ class ColorpickerPrivate : public QObject
         void angleChanged(int value);
         void iqlineChanged(int state);
         void saturationChanged(int state);
+        void pdf();
         void clear();
         void about();
         void openGithubReadme();
@@ -101,6 +110,7 @@ class ColorpickerPrivate : public QObject
             QScreen* screen;
             int displayNumber;
             QString displayProfile;
+            QString displayInProfile;
         };
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
@@ -110,6 +120,7 @@ class ColorpickerPrivate : public QObject
         QString asHex(int channel);
         QString asPercentage(float channel);
         QString asDegree(float channel);
+        QByteArray asBase64(const QImage& image, QString format);
         QColor color;
         QList<QColor> colors;
         int width;
@@ -120,7 +131,7 @@ class ColorpickerPrivate : public QObject
         QString displayProfile;
         QString displayInProfile;
         QPoint cursor;
-        bool freeze;
+        bool active;
         bool mouselocation;
         Format format;
         State state;
@@ -135,7 +146,7 @@ ColorpickerPrivate::ColorpickerPrivate()
 , height(128)
 , aperture(50)
 , magnify(1)
-, freeze(false)
+, active(true)
 , mouselocation(true)
 , format(Format::Int8bit)
 {
@@ -158,6 +169,8 @@ ColorpickerPrivate::init()
         ui->displayInProfile->addItem
             ("Display in " + resourceFile.baseName(), QVariant::fromValue(resourceFile.filePath()));
     }
+    // actions
+    ui->toggleActive->setDefaultAction(ui->active);
     // stylesheet
     QFile stylesheet(resources.absolutePath() + "/App.css");
     stylesheet.open(QFile::ReadOnly);
@@ -172,7 +185,7 @@ ColorpickerPrivate::init()
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyProfileAsText, SIGNAL(triggered()), this, SLOT(copyDisplayProfile()));
     connect(ui->copyColorAsBitmap, SIGNAL(triggered()), this, SLOT(copyColor()));
-    connect(ui->freeze, SIGNAL(toggled(bool)), this, SLOT(toggleFreeze(bool)));
+    connect(ui->active, SIGNAL(toggled(bool)), this, SLOT(toggleActive(bool)));
     connect(ui->as8bitValues, SIGNAL(triggered()), this, SLOT(as8bit()));
     connect(ui->as10bitValues, SIGNAL(triggered()), this, SLOT(as10bit()));
     connect(ui->asFloatValues, SIGNAL(triggered()), this, SLOT(asFloat()));
@@ -203,10 +216,12 @@ ColorpickerPrivate::init()
     connect(ui->iqline, SIGNAL(stateChanged(int)), this, SLOT(iqlineChanged(int)));
     connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
     connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
+    connect(ui->pdf, SIGNAL(pressed()), this, SLOT(pdf()));
     connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
     connect(ui->openGithubIssues, SIGNAL(triggered()), this, SLOT(openGithubIssues()));
     connect(picker.get(), SIGNAL(triggered()), this, SLOT(pick()));
+    connect(picker.get(), SIGNAL(closed()), this, SLOT(closed()));
     // pixmaps
     qApp->setAttribute(Qt::AA_UseHighDpiPixmaps);
 }
@@ -214,7 +229,7 @@ ColorpickerPrivate::init()
 void
 ColorpickerPrivate::update()
 {
-    if (freeze)
+    if (!active)
         return;
     
     int w = int(width / float(magnify));
@@ -302,7 +317,7 @@ ColorpickerPrivate::update()
     // display in profile
     if (displayInProfile.count() > 0)
     {
-        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), state.displayProfile, displayInProfile));
+        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), displayProfile, displayInProfile));
     }
     // state
     {
@@ -312,7 +327,8 @@ ColorpickerPrivate::update()
           cursor,
           screen,
           displayNumber,
-          displayProfile
+          displayProfile,
+          displayInProfile
         };
     }
     view();
@@ -361,10 +377,22 @@ ColorpickerPrivate::view()
     }
 }
 
+void
+ColorpickerPrivate::activate()
+{
+    ui->active->setChecked(true);
+}
+
+void
+ColorpickerPrivate::deactivate()
+{
+    ui->active->setChecked(false);
+}
+
 bool
 ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (freeze)
+    if (!active)
     {
         if (event->type() == QEvent::QEvent::MouseButtonPress)
         {
@@ -378,6 +406,10 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                     state = states[selected];
                     view();
                 }
+                else
+                {
+                    ui->widget->setSelected(-1);
+                }
             }
         }
     }
@@ -385,19 +417,16 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 }
 
 void
-ColorpickerPrivate::toggleFreeze(bool checked)
+ColorpickerPrivate::toggleActive(bool checked)
 {
-    if (checked)
-        ui->widget->setColors(colors);
-    
-    freeze = checked;
+    ui->widget->setColors(colors);
+    active = checked;
 }
 
 void
 ColorpickerPrivate::pick()
 {
     colors.push_back(color);
-    // state
     {
         update();
         states.push_back(state);
@@ -405,18 +434,24 @@ ColorpickerPrivate::pick()
 }
 
 void
+ColorpickerPrivate::closed()
+{
+    deactivate();
+}
+
+void
 ColorpickerPrivate::togglePick()
 {
     if (picker->isVisible())
     {
-        picker->hide();
+        deactivate();
+        {
+            picker->hide();
+        }
     }
     else
     {
-        if (ui->freeze->isChecked())
-            ui->freeze->setChecked(false);
-        
-        // picker
+        activate();
         {
             picker->setColor(color);
             picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
@@ -602,10 +637,214 @@ ColorpickerPrivate::clear()
 {
     colors.clear();
     states.clear();
-    if (ui->freeze->isChecked())
-        ui->freeze->setChecked(false);
-
+    ui->widget->setColors(colors);
     update();
+}
+
+void
+ColorpickerPrivate::pdf()
+{
+    QDateTime datetime = QDateTime::currentDateTime();
+    QString datestamp =
+        QString("%2 at %3").
+        arg(datetime.toString("yyyy-MM-dd")).
+        arg(datetime.toString("hh.mm.ss"));
+    
+    QString filename =
+        QString("%1/Colorpicker %2.pdf").
+        arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
+        arg(datestamp);
+    
+    QTextDocument* doc = new QTextDocument;
+    doc->setDocumentMargin(10);
+    QTextCursor cursor(doc);
+    cursor.movePosition(QTextCursor::Start);
+    
+    // colorpicker
+    {
+        QDir resources(QApplication::applicationDirPath() + "/../Resources");
+        QString image = resources.absolutePath() + "/AppIcon.png";
+        QTextImageFormat imageformat;
+        imageformat.setName(image);
+        imageformat.setWidth(64);
+        
+        cursor.insertImage(imageformat);
+        cursor.insertHtml("<br>");
+        cursor.insertHtml(QString("<h4>Colorpicker %1</h4>").arg(datestamp));
+        cursor.insertHtml("<br>");
+    }
+    // table
+    {
+        QTextTable* table = cursor.insertTable(2, 1);
+        QTextCharFormat headerformat;
+        headerformat.setForeground(window->palette().text());
+        headerformat.setBackground(window->palette().base());
+        
+        // format
+        {
+            qreal padding = 5;
+            QVector<QTextLength> columns = {
+                QTextLength(QTextLength::FixedLength, 454+padding*2)
+            };
+            QTextTableFormat format;
+            format.setBorder(1.0);
+            format.setBorderCollapse(true);
+            format.setCellPadding(padding);
+            format.setColumnWidthConstraints(columns);
+            table->setFormat(format);
+        }
+        // colorpicker
+        {
+            QTextTableCell cell = table->cellAt(0, 0);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml(QString("<h5 style='color:rgb(255, 255, 255)'>Colors</h5>"));
+        }
+        // image
+        {
+            QTextTableCell cell = table->cellAt(1, 0);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            QPixmap widget(ui->widget->size()*ui->widget->devicePixelRatio());
+            widget.setDevicePixelRatio(ui->widget->devicePixelRatio());
+            ui->widget->render(&widget);
+            QImage image = widget.toImage();
+            QString format = "png";
+            
+            QTextImageFormat imageformat;
+            imageformat.setWidth(ui->widget->width()/2);
+            imageformat.setHeight(ui->widget->height()/2);
+            imageformat.setName(QString("data:image/%1;base64,%2").
+                arg(QString("%1.%2").arg(rand()).arg(format)).
+                arg(asBase64(image, format).data()));
+            
+            cellcursor.insertImage(imageformat);
+        }
+    }
+    cursor.movePosition(QTextCursor::End);
+    cursor.insertHtml("<br>");
+    // table
+    {
+        QTextTable* table = cursor.insertTable(states.count()+1, 5);
+        QTextCharFormat headerformat;
+        headerformat.setForeground(window->palette().text());
+        headerformat.setBackground(window->palette().base());
+        
+        // format
+        {
+            qreal padding = 5;
+            QVector<QTextLength> columns = {
+                QTextLength(QTextLength::FixedLength, 40),
+                QTextLength(QTextLength::FixedLength, 64+padding*2),
+                QTextLength(QTextLength::FixedLength, 60),
+                QTextLength(QTextLength::FixedLength, 60),
+                QTextLength(QTextLength::FixedLength, 230)
+            };
+            QTextTableFormat format;
+            format.setBorder(1.0);
+            format.setBorderCollapse(true);
+            format.setCellPadding(padding);
+            format.setColumnWidthConstraints(columns);
+            table->setFormat(format);
+        }
+        // index
+        {
+            QTextTableCell cell = table->cellAt(0, 0);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>Index</h5>");
+        }
+        // image
+        {
+            QTextTableCell cell = table->cellAt(0, 1);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>Image</h5>");
+        }
+        // hsv
+        {
+            QTextTableCell cell = table->cellAt(0, 2);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>HSV</h5>");
+        }
+        // rgb
+        {
+            QTextTableCell cell = table->cellAt(0, 3);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>RGB</h5>");
+        }
+        // display
+        {
+            QTextTableCell cell = table->cellAt(0, 4);
+            QTextCursor cellcursor = cell.firstCursorPosition();
+            cell.setFormat(headerformat);
+            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>Display</h5>");
+        }
+        // states
+        for(int i=0; i<states.count(); i++) {
+            State state = states[i];
+            // index
+            {
+                QTextTableCell cell = table->cellAt(i+1, 0);
+                QTextCursor cellcursor = cell.firstCursorPosition();
+                cellcursor.insertHtml(QString("<small>%1</small>").arg(i+1));
+            }
+            // image
+            {
+                QTextTableCell cell = table->cellAt(i+1, 1);
+                QTextCursor cellcursor = cell.firstCursorPosition();
+                QImage image = state.pixmap.toImage();
+                QString format = "png";
+                
+                QTextImageFormat imageformat;
+                imageformat.setWidth(64);
+                imageformat.setHeight(64);
+                imageformat.setName(QString("data:image/%1;base64,%2").
+                    arg(QString("%1.%2").arg(rand()).arg(format)).
+                    arg(asBase64(image, format).data()));
+            
+                cellcursor.insertImage(imageformat);
+            }
+            // hsv
+            {
+                QTextTableCell cell = table->cellAt(i+1, 2);
+                QTextCursor cellcursor = cell.firstCursorPosition();
+                cellcursor.insertHtml(QString("<small><b>H:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::H)).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>S:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::S)).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>V:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::V)).arg("<br>"));
+            }
+            // rgb
+            {
+                QTextTableCell cell = table->cellAt(i+1, 3);
+                QTextCursor cellcursor = cell.firstCursorPosition();
+                cellcursor.insertHtml(QString("<small><b>R:</b> %1%2</small>").arg(formatRgb(state.color, RgbChannel::R)).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>G:</b> %1%2</small>").arg(formatRgb(state.color, RgbChannel::G)).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>B:</b> %1%2</small>").arg(formatRgb(state.color, RgbChannel::B)).arg("<br>"));
+            }
+            // display
+            {
+                QTextTableCell cell = table->cellAt(i+1, 4);
+                QTextCursor cellcursor = cell.firstCursorPosition();
+                cellcursor.insertHtml(QString("<small><b>Display:</b> #%1%2</small>").arg(state.displayNumber).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>In profile:</b> %1%2</small>").arg(QFileInfo(state.displayProfile).fileName()).arg("<br>"));
+                cellcursor.insertHtml(QString("<small><b>Out profile:</b> %1%2</small>").arg(QFileInfo(state.displayInProfile).fileName()).arg("<br>"));
+            }
+        }
+    }
+    cursor.movePosition(QTextCursor::End);
+    cursor.insertBlock();
+    // print
+    {
+        QPrinter printer(QPrinter::HighResolution);
+        printer.setOutputFormat(QPrinter::PdfFormat);
+        printer.setOutputFileName(filename);
+        printer.setPaperSize(QPrinter::A4);
+        printer.setColorMode(QPrinter::Color);
+        printer.setResolution(300);
+        doc->print(&printer);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
+    }
 }
 
 void
@@ -618,7 +857,7 @@ ColorpickerPrivate::about()
 void
 ColorpickerPrivate::openGithubReadme()
 {
-    QDesktopServices::openUrl(QUrl("https://github.com/mikaelsundell/colorpicker/blob/master/readme.md"));
+    QDesktopServices::openUrl(QUrl("https://github.com/mikaelsundell/colorpicker/blob/master/README.md"));
 }
 
 void
@@ -745,6 +984,25 @@ QString
 ColorpickerPrivate::asDegree(float channel)
 {
     return QString("%1").arg(channel, 0, 'f', 0);
+}
+
+QByteArray
+ColorpickerPrivate::asBase64(const QImage& image, QString format)
+{
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, format.toLocal8Bit().data());
+    buffer.close();
+    QByteArray base64 = bytes.toBase64();
+    QByteArray base64l;
+    for (int i=0; i<base64.size(); i++) {
+        base64l.append(base64[i]);
+        if (i%80 == 0) {
+            base64l.append("\n");
+        }
+    }
+    return base64l;
 }
 
 #include "colorpicker.moc"
