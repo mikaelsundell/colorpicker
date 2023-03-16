@@ -13,15 +13,15 @@ Colorpicker is a mac app to pick color values on your screen. It's an extended o
 Documentation
 -------------
 
-The Colorpicker app uses macOS to create images from the display for use with color picking. The app supports display profiles, different color formats and copy to clipboard functionality. All display color processing uses LCMS for platform portability.
+Colorpicker is a macOS app to easily pick colors across different displays. The app supports display profiles, different color formats, clipboard functionality and an interactive colorwheel for color preview. All internal color processing uses LCMS for platform portability.
+
+**How to use**
+
+Colorpicker needs to be active to pick colors. The app is always active when launched but can be activated using `View > Active [A]`. Once active the application will show the current color interactivly in a hsl color wheel. Use the color picker button or `Edit > Pick [P]` to start. Colors will start to appear on the color wheel. To end the color pick tool use either `Right mouse button` or `Esc` to end. After color pick app will no longer be active, colors can now be checked by clicking on the in the color wheel.
 
 **Display profile**
 
 The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces, transformed from the display profile .icc.
-
-**Picking colors**
-
-Use Pick icon or `Edit > Pick [P]` to pick colors from any screen and window and each color is stored in the color wheel, use right mouse button or escape to exit picker. Use `Aperture`, `Marker size`, `Background opacity` and `Color angle`to adjust the color wheel to your preference. To go back and check picked colors use `View > Freeze [F]` and color will be clickable in the color wheel.
 
 **Color processing in LCMS**
 
