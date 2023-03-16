@@ -12,7 +12,7 @@ class Colorpicker : public QMainWindow
     public:
         Colorpicker();
         virtual ~Colorpicker();
-        void update();
+        bool active() const;
         typedef struct {
             QString displayProfile;
             int displayNumber;
