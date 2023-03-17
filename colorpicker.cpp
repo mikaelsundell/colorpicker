@@ -53,7 +53,7 @@ class ColorpickerPrivate : public QObject
         ColorpickerPrivate();
         void init();
         void update();
-        void view();
+        void widget();
         void activate();
         void deactivate();
         bool eventFilter(QObject* object, QEvent* event);
@@ -331,11 +331,11 @@ ColorpickerPrivate::update()
           displayInProfile
         };
     }
-    view();
+    widget();
 }
 
 void
-ColorpickerPrivate::view()
+ColorpickerPrivate::widget()
 {
     ui->view->setPixmap(state.pixmap);
     // display
@@ -395,18 +395,24 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
     if (event->type() == QEvent::KeyPress)
     {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
-        if (keyEvent->key() == Qt::Key_Plus)
+        if (keyEvent->key() == Qt::Key_Escape)
+        {
+            deactivate();
+        }
+        else if (keyEvent->key() == Qt::Key_Plus)
         {
             QSlider* slider = ui->aperture;
             {
-                slider->setValue(slider->value() + slider->singleStep());
+                activate();
+                slider->setSliderPosition(slider->value() + slider->singleStep());
             }
         }
         else if (keyEvent->key() == Qt::Key_Minus)
         {
             QSlider* slider = ui->aperture;
             {
-                slider->setValue(slider->value() - slider->singleStep());
+                activate();
+                slider->setSliderPosition(slider->value() - slider->singleStep());
             }
         }
     }
@@ -422,7 +428,7 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                 if (selected >= 0) {
                     ui->widget->setSelected(selected);
                     state = states[selected];
-                    view();
+                    widget();
                 }
                 else
                 {
