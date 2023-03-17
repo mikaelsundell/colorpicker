@@ -18,8 +18,12 @@ class Colorpicker : public QMainWindow
             int displayNumber;
             QPoint cursor;
         } DisplayEvent;
+        typedef struct {
+            QPoint cursor;
+        } MouseEvent;
     private:
         void registerEvents();
-        void updateEvents(DisplayEvent event);
+        void displayEvent(DisplayEvent event);
+        void mouseEvent(MouseEvent event);
         QScopedPointer<ColorpickerPrivate> p;
 };
