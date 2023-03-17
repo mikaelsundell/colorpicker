@@ -109,12 +109,12 @@ Colorpicker::registerEvents()
        (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
     {
+        NSPoint point = [NSEvent mouseLocation];
+        QPoint mouseLocation = convertMouseLocation(point);
         if (active()) {
-            NSPoint point = [NSEvent mouseLocation];
-            QPoint mouseLocation = convertMouseLocation(point);
             if (mouseLocation != lastpos && mutex.tryLock()) {
                 DisplayInfo display = grabDisplayInfo(point);
-                updateEvents(
+                displayEvent(
                     Colorpicker::DisplayEvent() =
                     {
                         QString::fromCFString(display.displayProfile),
@@ -126,6 +126,13 @@ Colorpicker::registerEvents()
                 mutex.unlock();
 
             }
+        } else {
+            mouseEvent(
+                Colorpicker::MouseEvent() =
+                {
+                    mouseLocation
+                }
+            );
         }
         return event;
     }];
@@ -135,12 +142,12 @@ Colorpicker::registerEvents()
      (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
      {
+        NSPoint point = [NSEvent mouseLocation];
+        QPoint mouseLocation = convertMouseLocation(point);
         if (active()) {
-            NSPoint point = [NSEvent mouseLocation];
-            QPoint mouseLocation = convertMouseLocation(point);
             if (mouseLocation != lastpos && mutex.tryLock()) {
                 DisplayInfo display = grabDisplayInfo(point);
-                updateEvents(
+                displayEvent(
                     Colorpicker::DisplayEvent() =
                     {
                         QString::fromCFString(display.displayProfile),
@@ -151,6 +158,13 @@ Colorpicker::registerEvents()
                 lastpos = mouseLocation;
                 mutex.unlock();
             }
+        } else {
+            mouseEvent(
+                Colorpicker::MouseEvent() =
+                {
+                    mouseLocation
+                }
+            );
         }
     }];
 }

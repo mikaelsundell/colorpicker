@@ -392,6 +392,24 @@ ColorpickerPrivate::deactivate()
 bool
 ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
+    if (event->type() == QEvent::KeyPress)
+    {
+        QKeyEvent* keyEvent = (QKeyEvent*)event;
+        if (keyEvent->key() == Qt::Key_Plus)
+        {
+            QSlider* slider = ui->aperture;
+            {
+                slider->setValue(slider->value() + slider->singleStep());
+            }
+        }
+        else if (keyEvent->key() == Qt::Key_Minus)
+        {
+            QSlider* slider = ui->aperture;
+            {
+                slider->setValue(slider->value() - slider->singleStep());
+            }
+        }
+    }
     if (!active)
     {
         if (event->type() == QEvent::QEvent::MouseButtonPress)
@@ -1031,10 +1049,18 @@ Colorpicker::active() const
 }
 
 void
-Colorpicker::updateEvents(DisplayEvent event)
+Colorpicker::displayEvent(DisplayEvent event)
 {
     p->displayNumber = event.displayNumber;
     p->displayProfile = event.displayProfile;
     p->cursor = event.cursor;
     p->update();
 }
+
+void
+Colorpicker::mouseEvent(MouseEvent event)
+{
+    p->cursor = event.cursor;
+    p->update();
+}
+
