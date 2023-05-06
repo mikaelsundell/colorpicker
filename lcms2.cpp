@@ -3,21 +3,28 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #include "lcms2.h"
+#include <QPixmap>
 #include <QMap>
 
 namespace lcms2
 {
+    namespace
+    {
+        QMap<QString, QMap<cmsUInt32Number, QMap<QString, cmsHTRANSFORM> > > cache;
+    }
+
     cmsUInt32Number
     convertFormat(QImage::Format format)
     {
         switch (format)
         {
-            case QImage::Format_ARGB32:  //  (0xAARRGGBB)
-            case QImage::Format_RGB32:   //  (0xffRRGGBB)
+            case QImage::Format_ARGB32:
+            case QImage::Format_ARGB32_Premultiplied:
+            case QImage::Format_RGB32:
                 return TYPE_BGRA_8;
 
             case QImage::Format_RGB888:
-                return TYPE_RGB_8;       // 24-bit RGB format (8-8-8).
+                return TYPE_RGB_8;
 
             case QImage::Format_RGBX8888:
             case QImage::Format_RGBA8888:
@@ -38,36 +45,64 @@ namespace lcms2
 
             default:
                 return 0;
-
         }
     }
 
-    QRgb convertColor(QRgb color, QString profile, QString displayProfile)
+    cmsHTRANSFORM convertTransform(QString profile, cmsUInt32Number format, QString outProfile)
     {
-        static QMap<QString, QMap<QString, cmsHTRANSFORM> > transforms;
         cmsHTRANSFORM transform = nullptr;
-        if (transforms.contains(profile))
+        if (!cache.contains(profile))
         {
-            QMap<QString, cmsHTRANSFORM> profiletransforms = transforms[profile];
-            if (profiletransforms.contains(displayProfile))
-            {
-                transform = profiletransforms[displayProfile];
-            }
+            cache.insert(profile, QMap<cmsUInt32Number, QMap<QString, cmsHTRANSFORM> >());
         }
-        if (transform == nullptr)
+        if (!cache[profile].contains(format))
         {
-            if (!transforms.contains(profile))
-            {
-                transforms.insert(profile, QMap<QString, cmsHTRANSFORM>());
-            }
+            cache[profile].insert(format, QMap<QString, cmsHTRANSFORM>());
+        }
+        if (!cache[profile][format].contains(outProfile))
+        {
             cmsHPROFILE cmsProfile = cmsOpenProfileFromFile(profile.toLocal8Bit().constData(), "r");
-            cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(displayProfile.toLocal8Bit().constData(), "r");
-            transform = cmsCreateTransform
-            (cmsProfile, convertFormat(QImage::Format_RGB32), cmsDisplayProfile, convertFormat(QImage::Format_RGB32), INTENT_PERCEPTUAL, 0);
-            transforms[profile].insert(displayProfile, transform);
+            cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(outProfile.toLocal8Bit().constData(), "r");
+            cache[profile][format].insert(
+                outProfile,
+                cmsCreateTransform(cmsProfile, format, cmsDisplayProfile, format, INTENT_PERCEPTUAL, 0)
+            );
         }
+        return cache[profile][format][outProfile];
+    }
+
+    QRgb convertColor(QRgb color, QString profile, QString outProfile)
+    {
+        cmsHTRANSFORM transform = convertTransform(
+            profile, convertFormat(QImage::Format_RGB32), outProfile
+        );
         QRgb transformColor;
         cmsDoTransform(transform, (const void*)&color, (void*)&transformColor, sizeof(QRgb));
         return transformColor;
+    }
+
+    QPixmap convertPixmap(QPixmap pixmap, QString profile, QString outProfile)
+    {
+        QImage image = pixmap.toImage();
+        cmsHTRANSFORM transform = convertTransform(profile, convertFormat(image.format()), outProfile);
+        QImage transformimage(image.width(), image.height(), image.format());
+        cmsDoTransformLineStride(
+            transform,
+            image.constBits(),
+            transformimage.bits(),
+            image.width(),
+            image.height(),
+            image.bytesPerLine(),
+            transformimage.bytesPerLine(),
+            0,
+            0);
+        QPixmap transformpixmap = QPixmap::fromImage(transformimage);
+        transformpixmap.setDevicePixelRatio(pixmap.devicePixelRatio());
+        return transformpixmap;
+    }
+
+    void clear()
+    {
+        cache.clear();
     }
 }

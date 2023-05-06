@@ -25,6 +25,8 @@ set (app_sources
     colorpicker.h
     colorwheel.cpp
     colorwheel.h
+    label.h
+    label.cpp
     lcms2.cpp
     lcms2.h
     mac.mm
@@ -32,7 +34,10 @@ set (app_sources
     main.cpp
     picker.h
     picker.cpp
+    editor.h
+    editor.cpp
     about.ui
+    editor.ui
     colorpicker.ui
     colorpicker.qrc
 )

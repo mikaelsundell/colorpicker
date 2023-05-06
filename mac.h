@@ -13,4 +13,5 @@ namespace mac
     void setupOverlay(WId wid);
     QPixmap grabDisplayPixmap(int x, int y, int width, int height);
     QPixmap grabDisplayPixmap(int x, int y, int width, int height, WId excludeWid);
+    QString grabIccProfile(WId wid);
 }

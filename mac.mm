@@ -157,9 +157,11 @@ namespace mac
             return QPixmap();
 
         // if the grab size is not specified, set it to be the bounding box of all screens,
-        if (width < 0 || height < 0) {
+        if (width < 0 || height < 0)
+        {
             QRect windowRect;
-            for (uint i = 0; i < displayCount; ++i) {
+            for (uint i = 0; i < displayCount; ++i)
+            {
                 QRect displayBounds = QRectF::fromCGRect(CGDisplayBounds(displays[i])).toRect();
                 // Only include the screen if it is positioned past the x/y position
                 if ((displayBounds.x() >= x || displayBounds.right() > x) &&
@@ -176,11 +178,13 @@ namespace mac
         // grab images from each display
         QVector<QImage> images;
         QVector<QRect> destinations;
-        for (uint i = 0; i < displayCount; ++i) {
+        for (uint i = 0; i < displayCount; ++i)
+        {
             auto display = displays[i];
             QRect displayBounds = QRectF::fromCGRect(CGDisplayBounds(display)).toRect();
             QRect grabBounds = displayBounds.intersected(grabRect);
-            if (grabBounds.isNull()) {
+            if (grabBounds.isNull())
+            {
                 destinations.append(QRect());
                 images.append(QImage());
                 continue;
@@ -214,7 +218,8 @@ namespace mac
         
         CFArrayRef screenWindows = CGWindowListCreate(kCGWindowListOptionOnScreenOnly, kCGNullWindowID);
         CFMutableArrayRef grabWindows = CFArrayCreateMutableCopy(NULL, 0, screenWindows);
-        for (long i = CFArrayGetCount(grabWindows) - 1; i >= 0; i--) {
+        for (long i = CFArrayGetCount(grabWindows) - 1; i >= 0; i--)
+        {
             CGWindowID window = (CGWindowID)(uintptr_t)CFArrayGetValueAtIndex(grabWindows, i);
             if (window == windowIDToExcude)
                 CFArrayRemoveValueAtIndex(grabWindows, i);
@@ -249,11 +254,13 @@ namespace mac
         // grab images from each display
         QVector<QImage> images;
         QVector<QRect> destinations;
-        for (uint i = 0; i < displayCount; ++i) {
+        for (uint i = 0; i < displayCount; ++i)
+        {
             auto display = displays[i];
             QRect displayBounds = QRectF::fromCGRect(CGDisplayBounds(display)).toRect();
             QRect grabBounds = displayBounds.intersected(grabRect);
-            if (grabBounds.isNull()) {
+            if (grabBounds.isNull())
+            {
                 destinations.append(QRect());
                 images.append(QImage());
                 continue;
@@ -276,7 +283,88 @@ namespace mac
         QPainter painter(&windowPixmap);
         for (uint i = 0; i < displayCount; ++i)
             painter.drawImage(destinations.at(i), images.at(i));
+        
+        CFRelease(screenWindows);
+        CFRelease(grabWindows);
         return windowPixmap;
+    }
+
+    typedef struct {
+        CFUUIDRef displayUUid;
+        CFURLRef iccProfileUrl;
+    } ColorSync;
+
+    bool
+    colorSyncIterateCallback(CFDictionaryRef dict, void *data)
+    {
+        ColorSync* colorsync = (ColorSync *)data;
+        CFStringRef str;
+        CFUUIDRef uuid;
+        CFBooleanRef iscur;
+        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceClass, (const void**)&str))
+        {
+            return true;
+        }
+        if (!CFEqual(str, kColorSyncDisplayDeviceClass))
+        {
+            return true;
+        }
+        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceID, (const void**)&uuid))
+        {
+            return true;
+        }
+        if (!CFEqual(uuid, colorsync->displayUUid))
+        {
+            return true;
+        }
+        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileIsCurrent, (const void**)&iscur))
+        {
+            return true;
+        }
+        if (!CFBooleanGetValue(iscur))
+        {
+            return true;
+        }
+        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileURL, (const void**)&(colorsync->iccProfileUrl)))
+        {
+            return true;
+        }
+        CFRetain(colorsync->iccProfileUrl);
+        return false;
+    }
+
+    QString grabIccProfile(WId wid)
+    {
+        CGWindowID windowId = (CGWindowID)[convertWId(wid) windowNumber];
+        CFArrayRef screenWindow = CGWindowListCreate(kCGWindowListOptionIncludingWindow, windowId);
+        CFArrayRef screenDescriptions = CGWindowListCreateDescriptionFromArray(screenWindow);
+        CFDictionaryRef windowInfo = (CFDictionaryRef)CFArrayGetValueAtIndex ((CFArrayRef)screenDescriptions, 0);
+        // grab window bounds
+        CGRect rect;
+        CGRectMakeWithDictionaryRepresentation((CFDictionaryRef)CFDictionaryGetValue(windowInfo, kCGWindowBounds), &rect);
+        for(NSScreen* screen in NSScreen.screens)
+        {
+            if (NSMouseInRect(rect.origin, screen.frame, false))
+            {
+                NSDictionary* deviceDescription = [screen deviceDescription];
+                CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
+                // colorsync callnack for device profile id
+                ColorSync colorsync;
+                colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
+                colorsync.iccProfileUrl = NULL;
+                ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
+                CFRelease(colorsync.displayUUid);
+                CFStringRef iccprofileurl = CFURLCopyFileSystemPath(colorsync.iccProfileUrl, kCFURLPOSIXPathStyle);
+                CFRelease(colorsync.iccProfileUrl);
+                QString cfstring = QString::fromCFString(iccprofileurl);
+                CFRelease(iccprofileurl);
+                return cfstring;
+            }
+        }
+        CFRelease(windowInfo);
+        CFRelease(screenDescriptions);
+        CFRelease(screenWindow);
+        return QString();
     }
 }
 
