@@ -14,16 +14,16 @@ class Colorpicker : public QMainWindow
         virtual ~Colorpicker();
         bool active() const;
         typedef struct {
-            QString displayProfile;
             int displayNumber;
+            QString iccProfile;
             QPoint cursor;
-        } DisplayEvent;
+        } PickEvent;
         typedef struct {
             QPoint cursor;
-        } MouseEvent;
+        } MoveEvent;
     private:
         void registerEvents();
-        void displayEvent(DisplayEvent event);
-        void mouseEvent(MouseEvent event);
+        void pickEvent(PickEvent event);
+        void moveEvent(MoveEvent event);
         QScopedPointer<ColorpickerPrivate> p;
 };

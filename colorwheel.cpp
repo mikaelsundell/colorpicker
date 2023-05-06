@@ -17,8 +17,10 @@ class ColorwheelPrivate : public QObject
         ColorwheelPrivate();
         void init();
         void update();
-        int colorAt(const QPoint& point) const;
-    
+        int mapToSelected(const QPoint& point) const;
+        QColor mapToColor(const QPoint& point) const;
+        QColor mapToColor(const QColor& color, const QPoint& point) const;
+        qreal mapToDegrees(qreal radians) const;
     public:
         class State
         {
@@ -38,10 +40,12 @@ class ColorwheelPrivate : public QObject
         qreal markerSize;
         qreal borderOpacity;
         qreal backgroundOpacity;
+        qreal scale;
         bool iqlineVisible;
         bool saturationVisible;
+        bool labelsVisible;
         int selected;
-        QList<QColor> colors;
+        QList<QPair<QColor, QString>> colors;
         QList<State> states;
         QPointer<Colorwheel> widget;
 };
@@ -53,8 +57,11 @@ ColorwheelPrivate::ColorwheelPrivate()
 , markerSize(0.5)
 , borderOpacity(1.0)
 , backgroundOpacity(0.5)
-, iqlineVisible(true)
-, saturationVisible(true)
+, scale(0.85)
+, iqlineVisible(false)
+, saturationVisible(false)
+, labelsVisible(false)
+, selected(-1)
 {
 }
 
@@ -75,7 +82,6 @@ ColorwheelPrivate::update()
     states.clear();
     // painter
     QPainter p(&buffer);
-    qreal scale = 0.8;
     qreal diameter = std::min(widget->width(), widget->height()) * scale;
     qreal radius = diameter/2.0;
     QPointF center(widget->width()/2.0, widget->height()/2.0);
@@ -111,12 +117,18 @@ ColorwheelPrivate::update()
     p.setOpacity(1.0);
     qreal stroke = 1.5;
     QBrush brush = QBrush(Qt::white);
+    QString selectedlabel;
+    // selection
+    bool hasselection = selected > -1 ? true : false;
+    if (hasselection)
+        selectedlabel = colors[selected].second;
     // angles
     {
         p.save();
         p.setPen(QPen(brush, stroke/2));
         int step = 30;
-        qreal length = radius * 1.10;
+        qreal length = radius * 1.05;
+        int r=360, y=60, g=120, c=180, b=240, m=300;
         for(int span=0; span<360; span++)
         {
             if ((span % step) == 0)
@@ -130,8 +142,23 @@ ColorwheelPrivate::update()
                     font.setPointSizeF(font.pointSizeF() * 0.75);
                     p.setFont(font);
                     
+                    int angle = 360-span;
                     QFontMetrics metrics(p.font());
-                    QString text = QString("%1°").arg(360-span);
+                    QString label;
+                    if (angle == r)
+                        label = "R-";
+                    if (angle == m)
+                        label = "M-";
+                    if (angle == b)
+                        label = "B-";
+                    if (angle == c)
+                        label = "C-";
+                    if (angle == g)
+                        label = "G-";
+                    if (angle == y)
+                        label = "Y-";
+                    
+                    QString text = QString("%1%2°").arg(label).arg(angle);
                     QRect rect = metrics.boundingRect(text);
                     QPointF pos = transform.map(QPointF(length, 0));
                     
@@ -155,19 +182,28 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // lines
-    for (QColor color : colors)
+    for (QPair<QColor,QString> pair : colors)
     {
-        p.save();
-        p.setPen(QPen(brush, stroke/2));
-        p.rotate((1-color.hueF())*360);
+        QColor color = pair.first;
+        QString label = pair.second;
+        // painter
         {
-            qreal length = qMax(radius * color.saturationF(), 0.0);
+            p.save();
+            p.setPen(QPen(brush, stroke/2));
+            if (hasselection && label != selectedlabel)
+                p.setOpacity(0.5);
+            
+            p.rotate((1-color.hueF())*360);
             {
-                p.setPen(QPen(brush, 0.5));
-                p.drawLine(0, 0, 0 + length, 0);
+                qreal ellipse = radius * markerSize * 0.2;
+                qreal length = qMax(radius * color.saturationF() - ellipse/2, 0.0);
+                {
+                    p.setPen(QPen(brush, 0.5));
+                    p.drawLine(0, 0, 0 + length, 0);
+                }
             }
+            p.restore();
         }
-        p.restore();
     }
     // iq lines, roughly -33% from yuv vectorscope
     if (iqlineVisible)
@@ -179,38 +215,44 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // colors
-    for (QColor color : colors)
+    for (QPair<QColor,QString> pair : colors)
     {
-        p.save();
-        p.setPen(QPen(brush, 2.0));
-        p.rotate((1-color.hueF())*360);
-        qreal length = (qMax(radius * color.saturationF(), 0.0));
-        qreal ellipse = radius * markerSize * 0.2;
-        
-        // selected - find index from states length
-        bool isselected = states.length() == selected ? true : false;
-        if (isselected)
-            ellipse = ellipse * 1.4;
-        
-        // ellipse
+        QColor color = pair.first;
+        QString label = pair.second;
+        // paint
         {
-            p.setBrush(QBrush(color));
-            p.setPen(QPen(brush, stroke));
-            QRectF rectangle(-ellipse/2 + length, -ellipse/2, ellipse, ellipse);
-            p.drawEllipse(rectangle);
-            // state
+            p.save();
+            p.setPen(QPen(brush, 2.0));
+            if (hasselection && label != selectedlabel)
+                p.setOpacity(0.5);
+            
+            p.rotate((1-color.hueF())*360);
+            qreal length = (qMax(radius * color.saturationF(), 0.0));
+            qreal ellipse = radius * markerSize * 0.2;
+            
+            // selected - find index from states length
+            bool isselected = states.length() == selected ? true : false;
+            if (isselected)
+                ellipse = ellipse * 1.4;
+            
+            // ellipse
             {
-                QTransform world = p.worldTransform();
-                states.push_back(State {
-                    colors.indexOf(color),
-                    color,
-                    world.mapRect(rectangle)
-                });
+                p.setBrush(QBrush(color));
+                p.setPen(QPen(brush, stroke));
+                QRectF rect(-ellipse/2 + length, -ellipse/2, ellipse, ellipse);
+                p.drawEllipse(rect);
+                // state
+                {
+                    QTransform world = p.worldTransform();
+                    states.push_back(State {
+                        states.count(),
+                        color,
+                        world.mapRect(rect)
+                    });
+                }
             }
-        }
-        // triangle
-        if (isselected)
-        {
+            // triangle
+            if (isselected)
             {
                 qreal arrow = ellipse * 0.15;
                 qreal stretch = 1.8;
@@ -222,8 +264,36 @@ ColorwheelPrivate::update()
                 path.moveTo(rect.topLeft());
                 p.fillPath(path, brush);
             }
+            // labels
+            if (labelsVisible)
+            {
+                p.save();
+                p.setPen(QPen(brush, stroke/2));
+                QTransform transform = p.transform();
+                p.resetTransform();
+                QFontMetrics metrics(p.font());
+                QString text = QString("%1").arg(label);
+                QRectF bounding = metrics.boundingRect(text);
+                QPointF pos = transform.map(QPointF(length, 0));
+                QRectF rect = QRectF(-ellipse/2+length, -ellipse/2, ellipse, ellipse);
+                rect.moveCenter(pos);
+                bounding.moveTo(QPointF(rect.right()+4, rect.center().y()-bounding.height()/2));
+                QPainterPath path;
+                path.addRoundedRect(bounding, 4, 4);
+                p.save();
+                p.setOpacity(0.5);
+                p.fillPath(path, widget->palette().base());
+                p.restore();
+                
+                QFont font = p.font();
+                font.setPointSizeF(font.pointSizeF() * 0.75);
+                p.setFont(font);
+                
+                p.drawText(bounding, Qt::AlignCenter, text);
+                p.restore();
+            }
+            p.restore();
         }
-        p.restore();
     }
     // iq saturation
     if (saturationVisible)
@@ -245,12 +315,9 @@ ColorwheelPrivate::update()
             QFontMetrics metrics(p.font());
             QString text = QString("%1%").arg(value * 100);
             QRect rect = metrics.boundingRect(text);
-            
             qreal length = radius * value;
             QPointF pos = transform.map(QPointF(length, 0));
-            
             rect.moveTo(pos.toPoint());
-            
             QPainterPath path;
             path.addRoundedRect(rect, 4, 4);
             p.save();
@@ -259,7 +326,7 @@ ColorwheelPrivate::update()
             p.restore();
             
             QFont font = p.font();
-            font.setPointSizeF(font.pointSizeF() * 0.65);
+            font.setPointSizeF(font.pointSizeF() * 0.75);
             p.setFont(font);
             
             p.drawText(rect, Qt::AlignCenter, text);
@@ -341,7 +408,7 @@ ColorwheelPrivate::paintColorring(int w, int h, qreal dpr)
 }
 
 int
-ColorwheelPrivate::colorAt(const QPoint& point) const
+ColorwheelPrivate::mapToSelected(const QPoint& point) const
 {
     // return state index from world space
     for(State state : states)
@@ -351,6 +418,42 @@ ColorwheelPrivate::colorAt(const QPoint& point) const
             return state.index;
     }
     return -1;
+}
+
+QColor
+ColorwheelPrivate::mapToColor(const QPoint& point) const
+{
+    qreal diameter = std::min(widget->width(), widget->height()) * scale;
+    qreal radius = diameter/2.0;
+    QPointF center = widget->rect().center();
+    QTransform transform;
+    transform.rotate(angle * 360);
+    // pos - map without rotation applied
+    QPointF pos = transform.inverted().map(point - center);
+    qreal hue = mapToDegrees(atan2(-pos.y(), pos.x()));
+    qreal distance = sqrt(
+        pos.x() * pos.x() + pos.y() * pos.y()
+    );
+    qreal saturation = qBound(0.0, distance / radius, 1.0);
+    return QColor::fromHsvF(hue / 360.0, saturation, 1.0);
+}
+
+QColor
+ColorwheelPrivate::mapToColor(const QColor& color, const QPoint& point) const
+{
+    QColor mapcolor = mapToColor(point);
+    // combine value of color with new map color as colorwheel is 2D
+    return QColor::fromHsvF(mapcolor.hueF(), mapcolor.saturationF(), color.valueF());
+}
+
+qreal
+ColorwheelPrivate::mapToDegrees(qreal radians) const
+{
+    qreal degree = (radians * (180 / M_PI)) ;
+    if (degree < 0.0) {
+        degree += 360.0;
+    }
+    return degree;
 }
 
 #include "colorwheel.moc"
@@ -375,9 +478,9 @@ Colorwheel::angle() const
 }
 
 void
-Colorwheel::setAngle(qreal size)
+Colorwheel::setAngle(qreal angle)
 {
-    p->angle = size;
+    p->angle = angle;
     p->update();
     update();
 }
@@ -402,28 +505,39 @@ Colorwheel::backgroundOpacity() const
     return p->backgroundOpacity;
 }
 
-QList<QColor>
+QList<QPair<QColor,QString>>
 Colorwheel::colors()
 {
     return p->colors;
 }
 
 void
-Colorwheel::setColors(const QList<QColor>& colors)
+Colorwheel::setColors(const QList<QPair<QColor,QString>> colors, bool selected)
 {
     p->colors = colors;
-    p->selected = colors.count() - 1;
+    if (selected)
+        p->selected = colors.count() - 1;
     p->update();
     update();
 }
 
-
 int
-Colorwheel::colorAt(const QPoint& point) const
+Colorwheel::mapToSelected(const QPoint& point) const
 {
-    return p->colorAt(point);
+    return p->mapToSelected(point);
 }
 
+QColor
+Colorwheel::mapToColor(const QPoint& point) const
+{
+    return p->mapToColor(point);
+}
+
+QColor
+Colorwheel::mapToColor(const QColor& color, const QPoint& point) const
+{
+    return p->mapToColor(color, point);
+}
 
 void
 Colorwheel::setBackgroundOpacity(qreal opacity)
@@ -448,6 +562,20 @@ Colorwheel::setMarkerSize(qreal size)
 }
 
 bool
+Colorwheel::isIQLineVisible() const
+{
+    return p->iqlineVisible;
+}
+
+void
+Colorwheel::setIQLineVisible(bool visible)
+{
+    p->iqlineVisible = visible;
+    p->update();
+    update();
+}
+
+bool
 Colorwheel::isSaturationVisible() const
 {
     return p->saturationVisible;
@@ -462,15 +590,15 @@ Colorwheel::setSaturationVisible(bool visible)
 }
 
 bool
-Colorwheel::isIQLineVisible() const
+Colorwheel::isLabelsVisible() const
 {
-    return p->iqlineVisible;
+    return p->labelsVisible;
 }
 
 void
-Colorwheel::setIQLineVisible(bool visible)
+Colorwheel::setLabelsVisible(bool visible)
 {
-    p->iqlineVisible = visible;
+    p->labelsVisible = visible;
     p->update();
     update();
 }
@@ -479,6 +607,12 @@ int
 Colorwheel::selected() const
 {
     return p->selected;
+}
+
+bool
+Colorwheel::hasSelection() const
+{
+    return p->selected > -1;
 }
 
 void

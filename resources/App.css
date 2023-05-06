@@ -3,25 +3,24 @@
  * https://github.com/mikaelsundell/colorpicker
  */
 
-Colorpicker
+/* Top-level widgets */
+
+QMainWindow,
+QDialog
 {
     background-color: hsl(220,55,4);
 }
 
-QWidget#colorPicker
+/* QWidgets widgets */
+
+QWidget#displayWidget
 {
     background-color: hsl(220,55,12);
     border-radius: 5px;
 }
 
-QWidget#colorControls
-{
-    background-color: hsl(220,55,12);
-    border-radius: 5px;
-}
 
-
-QWidget#colorWheel
+QWidget#colorWidget
 {
     background-color: hsl(220,55,12);
     border-radius: 5px;
@@ -32,25 +31,76 @@ QWidget#mouseLocation
     background-color: hsl(0,0,0);
 }
 
-QLabel#live
+QWidget:checked#toggleActive
 {
-    background-color: hsl(120,70,50);
-    border-radius: 2px;
+    padding: 2px;
+    background-color: hsl(120,55,50);
+    border: 1 solid hsl(120,55,70);
 }
+
+QWidget:checked#togglePin
+{
+    padding: 2px;
+    background-color: hsl(120,55,50);
+    border: 1 solid hsl(120,55,70);
+}
+
+/* QFrame widgets */
+
+QFrame#view
+{
+    border: 1 solid hsl(216,7,29);
+}
+
+/* QToolButton widgets */
 
 QToolButton#toggleActive
 {
     padding: 2px;
 }
 
-QWidget:checked#toggleActive
+QToolButton#togglePin
 {
     padding: 2px;
-    background-color: hsl(120,55,60);
-    border: 1 solid hsl(120,55,70);
 }
+
+/* QSlider widgets */
+
+QSlider::groove:horizontal
+{
+    height: 5px;
+    background-color: hsl(220,17,40);
+    border: 1px solid black;
+    border-radius: 3px;
+    margin: 2px 0;
+}
+
+QSlider::sub-page:horizontal
+{
+    height: 5px;
+    background-color: hsl(220,17,80);
+    border: 1px solid black;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal
+{
+    background: hsl(0,0,150);
+    width: 13px;
+    margin: -4px 0;
+    border-radius: 6px;
+}
+
+/* Custom widgets */
 
 Colorwheel
 {
     background-color: hsl(220,55,12);
+}
+
+Editor
+{
+    background-color: hsl(220,12,16);
+    border: 1 solid hsl(216,7,100);
 }

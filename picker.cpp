@@ -6,7 +6,6 @@
 #include "mac.h"
 
 #include <QMouseEvent>
-#include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
 

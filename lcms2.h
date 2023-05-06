@@ -8,5 +8,7 @@
 
 namespace lcms2
 {
-    QRgb convertColor(QRgb color, QString profile, QString displayProfile);
+    QRgb convertColor(QRgb color, QString profile, QString outProfile);
+    QPixmap convertPixmap(QPixmap pixmap, QString profile, QString outProfile);
+    void clear();
 }

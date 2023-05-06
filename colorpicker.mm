@@ -24,7 +24,8 @@ namespace
         return QPoint(floor(cursor.x()), floor(cursor.y()));
     }
 
-    typedef struct {
+    typedef struct
+    {
         CFUUIDRef displayUUid;
         CFURLRef deviceProfileUrl;
     } ColorSync;
@@ -68,10 +69,35 @@ namespace
         return false;
     }
 
-    typedef struct {
-        CFStringRef displayProfile;
+    struct DisplayInfo {
         uint32_t displayNumber;
-    } DisplayInfo;
+        CFStringRef displayProfile;
+        DisplayInfo()
+        {}
+        ~DisplayInfo()
+        {
+            CFRelease(displayProfile);
+        }
+    };
+
+    DisplayInfo
+    grabDisplayInfo(NSScreen* screen)
+    {
+        DisplayInfo display;
+        NSDictionary *deviceDescription = [screen deviceDescription];
+        CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
+        display.displayNumber = displayId;
+        // colorsync callnack for device profile id
+        ColorSync colorsync;
+        colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
+        colorsync.deviceProfileUrl = NULL;
+        ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
+        CFRelease(colorsync.displayUUid);
+        CFStringRef deviceprofileurl = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
+        CFRelease(colorsync.deviceProfileUrl);
+        display.displayProfile = deviceprofileurl;
+        return display;
+    }
 
     DisplayInfo
     grabDisplayInfo(NSPoint point)
@@ -80,20 +106,7 @@ namespace
         {
             if (NSMouseInRect(point, screen.frame, false))
             {
-                DisplayInfo display;
-                NSDictionary *deviceDescription = [screen deviceDescription];
-                CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
-                display.displayNumber = displayId;
-                // colorsync callnack for device profile id
-                ColorSync colorsync;
-                colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
-                colorsync.deviceProfileUrl = NULL;
-                ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
-                CFRelease(colorsync.displayUUid);
-                CFStringRef deviceprofileurl = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
-                CFRelease(colorsync.deviceProfileUrl);
-                display.displayProfile = deviceprofileurl;
-                return display;
+                return grabDisplayInfo(screen);
             }
         }
         return DisplayInfo();
@@ -114,21 +127,21 @@ Colorpicker::registerEvents()
         if (active()) {
             if (mouseLocation != lastpos && mutex.tryLock()) {
                 DisplayInfo display = grabDisplayInfo(point);
-                displayEvent(
-                    Colorpicker::DisplayEvent() =
+                pickEvent(
+                    Colorpicker::PickEvent() =
                     {
-                        QString::fromCFString(display.displayProfile),
                         int(display.displayNumber),
+                        QString::fromCFString(display.displayProfile),
                         mouseLocation
                     }
+                          
                 );
                 lastpos = mouseLocation;
                 mutex.unlock();
-
             }
         } else {
-            mouseEvent(
-                Colorpicker::MouseEvent() =
+            moveEvent(
+                Colorpicker::MoveEvent() =
                 {
                     mouseLocation
                 }
@@ -147,11 +160,11 @@ Colorpicker::registerEvents()
         if (active()) {
             if (mouseLocation != lastpos && mutex.tryLock()) {
                 DisplayInfo display = grabDisplayInfo(point);
-                displayEvent(
-                    Colorpicker::DisplayEvent() =
+                pickEvent(
+                    Colorpicker::PickEvent() =
                     {
-                        QString::fromCFString(display.displayProfile),
                         int(display.displayNumber),
+                        QString::fromCFString(display.displayProfile),
                         mouseLocation
                     }
                 );
@@ -159,8 +172,8 @@ Colorpicker::registerEvents()
                 mutex.unlock();
             }
         } else {
-            mouseEvent(
-                Colorpicker::MouseEvent() =
+            moveEvent(
+                Colorpicker::MoveEvent() =
                 {
                     mouseLocation
                 }
