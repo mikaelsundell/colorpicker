@@ -1,6 +1,8 @@
 <RCC>
   <qresource prefix="icons">
     <file>resources/Pin.png</file>
+    <file>resources/Collapse.png</file>
+    <file>resources/Expand.png</file>
     <file>resources/Active.png</file>
     <file>resources/Pdf.png</file>
     <file>resources/Picker.png</file>
