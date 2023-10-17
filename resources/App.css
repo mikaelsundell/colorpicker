@@ -13,17 +13,36 @@ QDialog
 
 /* QWidgets widgets */
 
+QWidget#displayBar
+{
+    background-color: hsl(220,55,18);
+    border-radius: 5px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
 QWidget#displayWidget
 {
     background-color: hsl(220,55,12);
     border-radius: 5px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
 }
 
+QWidget#colorsBar
+{
+    background-color: hsl(220,55,18);
+    border-radius: 5px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
 
-QWidget#colorWidget
+QWidget#colorsWidget
 {
     background-color: hsl(220,55,12);
     border-radius: 5px;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
 }
 
 QWidget#mouseLocation
@@ -62,6 +81,18 @@ QToolButton#toggleActive
 QToolButton#togglePin
 {
     padding: 2px;
+}
+
+QToolButton#toggleDisplay
+{
+    padding: 2px;
+    background-color: transparent;
+}
+
+QToolButton#toggleColors
+{
+    padding: 2px;
+    background-color: transparent;
 }
 
 /* QSlider widgets */

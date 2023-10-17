@@ -25,6 +25,7 @@ class Colorwheel : public QWidget
         bool isLabelsVisible() const;
         int selected() const;
         bool hasSelection() const;
+        qreal zoomFactor() const;
     
     public Q_SLOTS:
         void setAngle(qreal angle);
@@ -36,6 +37,7 @@ class Colorwheel : public QWidget
         void setMarkerSize(qreal size);
         void setSaturationVisible(bool visible);
         void setSelected(int selected);
+        void setZoomFactor(qreal factor);
     
     protected:
         void paintEvent(QPaintEvent *event) override;

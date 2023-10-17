@@ -20,12 +20,14 @@ class PickerPrivate : public QObject
     
     public:
         QPixmap buffer;
+        QColor borderColor;
         QColor color;
         QCursor cursor;
         QPointer<Picker> widget;
 };
 
 PickerPrivate::PickerPrivate()
+: borderColor(Qt::black)
 {
 }
 
@@ -54,7 +56,7 @@ PickerPrivate::update()
     QPointF center(widget->width()/2.0, widget->height()/2.0);
     QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
     p.fillRect(widget->rect(), Qt::transparent);
-    QBrush brush = QBrush(Qt::black);
+    QBrush brush = QBrush(borderColor);
     // ellipse
     {
         p.setRenderHint(QPainter::Antialiasing);
@@ -121,6 +123,12 @@ Picker::~Picker()
 }
 
 QColor
+Picker::borderColor()
+{
+    return p->borderColor;
+}
+
+QColor
 Picker::color()
 {
     return p->color;
@@ -135,7 +143,15 @@ Picker::paintEvent(QPaintEvent* event)
 }
 
 void
-Picker::setColor(QColor color)
+Picker::setBorderColor(const QColor& color)
+{
+    p->borderColor = color;
+    p->update();
+    update();
+}
+
+void
+Picker::setColor(const QColor& color)
 {
     p->color = color;
     p->update();

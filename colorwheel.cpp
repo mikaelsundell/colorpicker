@@ -41,6 +41,7 @@ class ColorwheelPrivate : public QObject
         qreal borderOpacity;
         qreal backgroundOpacity;
         qreal scale;
+        qreal zoomFactor;
         bool iqlineVisible;
         bool saturationVisible;
         bool labelsVisible;
@@ -58,6 +59,7 @@ ColorwheelPrivate::ColorwheelPrivate()
 , borderOpacity(1.0)
 , backgroundOpacity(0.5)
 , scale(0.85)
+, zoomFactor(1.0)
 , iqlineVisible(false)
 , saturationVisible(false)
 , labelsVisible(false)
@@ -196,7 +198,7 @@ ColorwheelPrivate::update()
             p.rotate((1-color.hueF())*360);
             {
                 qreal ellipse = radius * markerSize * 0.2;
-                qreal length = qMax(radius * color.saturationF() - ellipse/2, 0.0);
+                qreal length = qMin(radius, qMax(0.0, radius * color.saturationF() * zoomFactor - ellipse/2));
                 {
                     p.setPen(QPen(brush, 0.5));
                     p.drawLine(0, 0, 0 + length, 0);
@@ -223,11 +225,8 @@ ColorwheelPrivate::update()
         {
             p.save();
             p.setPen(QPen(brush, 2.0));
-            if (hasselection && label != selectedlabel)
-                p.setOpacity(0.5);
-            
             p.rotate((1-color.hueF())*360);
-            qreal length = (qMax(radius * color.saturationF(), 0.0));
+            qreal length = qMin(radius, qMax(0.0, radius * color.saturationF() * zoomFactor));
             qreal ellipse = radius * markerSize * 0.2;
             
             // selected - find index from states length
@@ -313,7 +312,7 @@ ColorwheelPrivate::update()
         {
             p.save();
             QFontMetrics metrics(p.font());
-            QString text = QString("%1%").arg(value * 100);
+            QString text = QString("%1%").arg(value * 100 * zoomFactor);
             QRect rect = metrics.boundingRect(text);
             qreal length = radius * value;
             QPointF pos = transform.map(QPointF(length, 0));
@@ -619,6 +618,20 @@ void
 Colorwheel::setSelected(int selected)
 {
     p->selected = selected;
+    p->update();
+    update();
+}
+
+qreal
+Colorwheel::zoomFactor() const
+{
+    return p->zoomFactor;
+}
+
+void
+Colorwheel::setZoomFactor(qreal factor)
+{
+    p->zoomFactor = factor;
     p->update();
     update();
 }

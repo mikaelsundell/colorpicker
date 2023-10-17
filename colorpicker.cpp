@@ -54,6 +54,7 @@ class ColorpickerPrivate : public QObject
     public:
         ColorpickerPrivate();
         void init();
+        void stylesheet();
         void update();
         void view();
         void widget();
@@ -62,6 +63,7 @@ class ColorpickerPrivate : public QObject
         bool eventFilter(QObject* object, QEvent* event);
     
     public Q_SLOTS:
+        void toggleDisplay();
         void togglePin(bool checked);
         void toggleActive(bool checked);
         void pick();
@@ -83,6 +85,7 @@ class ColorpickerPrivate : public QObject
         void magnify5x();
         void toggleMouseLocation();
         void iccConvertProfileChanged(int index);
+        void toggleColors();
         void toggleRGB();
         void toggleR();
         void toggleG();
@@ -96,6 +99,7 @@ class ColorpickerPrivate : public QObject
         void backgroundOpacityChanged(int value);
         void angleChanged(int value);
         void iqlineChanged(int state);
+        void zoomChanged(int state);
         void saturationChanged(int state);
         void labelsChanged(int state);
         void editorChanged(int value);
@@ -169,6 +173,7 @@ class ColorpickerPrivate : public QObject
         State state;
         Edit edit;
         int selected;
+        QSize size;
         QList<State> states;
         QPointer<Colorpicker> window;
         QScopedPointer<Picker> picker;
@@ -210,13 +215,12 @@ ColorpickerPrivate::init()
     ui->toggleActive->setDefaultAction(ui->active);
     ui->togglePin->setDefaultAction(ui->pin);
     // stylesheet
-    QFile stylesheet(resources.absolutePath() + "/App.css");
-    stylesheet.open(QFile::ReadOnly);
-    qApp->setStyleSheet(stylesheet.readAll());
+    stylesheet();
     // event filter
     window->installEventFilter(this);
     // connect
-    connect(ui->iccConvertProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(iccConvertProfileChanged(int)));
+    connect(ui->toggleDisplay, SIGNAL(pressed()), this, SLOT(toggleDisplay()));
+    connect(ui->toggleColors, SIGNAL(pressed()), this, SLOT(toggleColors()));
     connect(ui->r, SIGNAL(triggered()), this, SLOT(toggleR()));
     connect(ui->g, SIGNAL(triggered()), this, SLOT(toggleG()));
     connect(ui->b, SIGNAL(triggered()), this, SLOT(toggleB()));
@@ -259,6 +263,7 @@ ColorpickerPrivate::init()
     connect(ui->backgroundOpacity, SIGNAL(valueChanged(int)), this, SLOT(backgroundOpacityChanged(int)));
     connect(ui->angle, SIGNAL(valueChanged(int)), this, SLOT(angleChanged(int)));
     connect(ui->iqline, SIGNAL(stateChanged(int)), this, SLOT(iqlineChanged(int)));
+    connect(ui->zoom, SIGNAL(stateChanged(int)), this, SLOT(zoomChanged(int)));
     connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
     connect(ui->labels, SIGNAL(stateChanged(int)), this, SLOT(labelsChanged(int)));
     connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
@@ -276,8 +281,30 @@ ColorpickerPrivate::init()
     connect(this, SIGNAL(readOnly(bool)), ui->h, SLOT(setReadOnly(bool)));
     connect(this, SIGNAL(readOnly(bool)), ui->s, SLOT(setReadOnly(bool)));
     connect(this, SIGNAL(readOnly(bool)), ui->v, SLOT(setReadOnly(bool)));
-    // pixmaps
     qApp->setAttribute(Qt::AA_UseHighDpiPixmaps);
+    size = window->size();
+    // debug
+    #ifdef QT_DEBUG
+        QMenu* menu = ui->menubar->addMenu("Debug");
+        {
+            QAction* action = new QAction("Reload stylesheet...", this);
+            action->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_S));
+            menu->addAction(action);
+            connect(action, &QAction::triggered, [&]() {
+                this->stylesheet();
+            });
+        }
+    #endif
+    
+}
+
+void
+ColorpickerPrivate::stylesheet()
+{
+    QDir resources(QApplication::applicationDirPath());
+    QFile stylesheet(resources.absolutePath() + "/../Resources/App.css");
+    stylesheet.open(QFile::ReadOnly);
+    qApp->setStyleSheet(stylesheet.readAll());
 }
 
 void
@@ -466,6 +493,12 @@ ColorpickerPrivate::widget()
     // picker
     if (picker->isVisible())
     {
+        // threshold for border color contrast
+        if (state.color.valueF() < 0.2f) {
+            picker->setBorderColor(Qt::white);
+        } else {
+            picker->setBorderColor(Qt::black);
+        }
         picker->setColor(state.color);
         picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
     }
@@ -586,6 +619,23 @@ ColorpickerPrivate::toggleActive(bool checked)
     }
     active = checked;
 
+}
+
+void
+ColorpickerPrivate::toggleDisplay()
+{
+    int height = ui->displayWidget->height();
+    if (ui->toggleDisplay->isChecked()) {
+        ui->toggleDisplay->setIcon(QIcon(":/icons/resources/Collapse.png"));
+        ui->displayWidget->show();
+        window->setFixedSize(window->width(), size.height() + height);
+
+    } else {
+        ui->toggleDisplay->setIcon(QIcon(":/icons/resources/Expand.png"));
+        ui->displayWidget->hide();
+        window->setFixedSize(window->width(), size.height() - height);
+    }
+    size = window->size();
 }
 
 void
@@ -760,6 +810,23 @@ ColorpickerPrivate::iccConvertProfileChanged(int index)
 }
 
 void
+ColorpickerPrivate::toggleColors()
+{
+    int height = ui->colorsWidget->height();
+    if (ui->toggleColors->isChecked()) {
+        ui->toggleColors->setIcon(QIcon(":/icons/resources/Collapse.png"));
+        ui->colorsWidget->show();
+        window->setFixedSize(window->width(), size.height() + height);
+    } else {
+        
+        ui->toggleColors->setIcon(QIcon(":/icons/resources/Expand.png"));
+        ui->colorsWidget->hide();
+        window->setFixedSize(window->width(), size.height() - height);
+    }
+    size = window->size();
+}
+
+void
 ColorpickerPrivate::toggleRGB()
 {
     if (!editor->isVisible())
@@ -916,6 +983,15 @@ ColorpickerPrivate::iqlineChanged(int state)
         ui->colorWheel->setIQLineVisible(true);
     else
         ui->colorWheel->setIQLineVisible(false);
+}
+
+void
+ColorpickerPrivate::zoomChanged(int state)
+{
+    if (state == Qt::Checked)
+        ui->colorWheel->setZoomFactor(2);
+    else
+        ui->colorWheel->setZoomFactor(1);
 }
 
 void
