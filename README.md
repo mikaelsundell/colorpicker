@@ -6,7 +6,7 @@ Readme for colorpicker
 Introduction
 ------------
 
-![Screenshot]([https://github.com/mikaelsundell/colorpicker/blob/a408dc66fed59e93153df4822b4336cd33055706/resources/Colorpicker.png)
+<img src="https://github.com/mikaelsundell/colorpicker/blob/4cd961b3f3679f1149b636c70946bb8dadb5f9d1/resources/Colorpicker.png" width="400" />
 
 colorpicker is a mac app to create color palettes.
 
