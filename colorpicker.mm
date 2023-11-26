@@ -118,6 +118,37 @@ Colorpicker::registerEvents()
 {
     static QMutex mutex;
     static QPoint lastpos;
+    NSApplication *app = [NSApplication sharedApplication];
+    [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
+                                                      object:nil
+                                                       queue:nil
+                                                  usingBlock:^(NSNotification *notification) {
+        NSPoint point = [NSEvent mouseLocation];
+        QPoint mouseLocation = convertMouseLocation(point);
+        if (active()) {
+            if (mouseLocation != lastpos && mutex.tryLock()) {
+                DisplayInfo display = grabDisplayInfo(point);
+                pickEvent(
+                    Colorpicker::PickEvent() =
+                    {
+                        int(display.displayNumber),
+                        QString::fromCFString(display.displayProfile),
+                        mouseLocation
+                    }
+                          
+                );
+                lastpos = mouseLocation;
+                mutex.unlock();
+            }
+        } else {
+            moveEvent(
+                Colorpicker::MoveEvent() =
+                {
+                    mouseLocation
+                }
+            );
+        }
+    }];
     [NSEvent addLocalMonitorForEventsMatchingMask:
        (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
         handler:^(NSEvent * event)
