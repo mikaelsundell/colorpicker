@@ -5,6 +5,7 @@
 #include "colorpicker.h"
 #include "picker.h"
 #include "editor.h"
+#include "eventfilter.h"
 #include "lcms2.h"
 #include "mac.h"
 
@@ -25,6 +26,7 @@
 #include <QTextDocument>
 #include <QTextTable>
 #include <QUrl>
+#include <QWindow>
 #include <QDebug>
 
 // generated files
@@ -178,6 +180,8 @@ class ColorpickerPrivate : public QObject
         QPointer<Colorpicker> window;
         QScopedPointer<Picker> picker;
         QScopedPointer<Editor> editor;
+        QScopedPointer<Eventfilter> displayfilter;
+        QScopedPointer<Eventfilter> colorsfilter;
         QScopedPointer<Ui_Colorpicker> ui;
 };
 
@@ -218,7 +222,15 @@ ColorpickerPrivate::init()
     stylesheet();
     // event filter
     window->installEventFilter(this);
+    // display filter
+    displayfilter.reset(new Eventfilter);
+    ui->displayBar->installEventFilter(displayfilter.data());
+    // color filter
+    colorsfilter.reset(new Eventfilter);
+    ui->colorsBar->installEventFilter(colorsfilter.data());
     // connect
+    connect(displayfilter.data(), SIGNAL(pressed()), ui->toggleDisplay, SLOT(click()));
+    connect(colorsfilter.data(), SIGNAL(pressed()), ui->toggleColors, SLOT(click()));
     connect(ui->toggleDisplay, SIGNAL(pressed()), this, SLOT(toggleDisplay()));
     connect(ui->toggleColors, SIGNAL(pressed()), this, SLOT(toggleColors()));
     connect(ui->r, SIGNAL(triggered()), this, SLOT(toggleR()));
@@ -295,7 +307,6 @@ ColorpickerPrivate::init()
             });
         }
     #endif
-    
 }
 
 void
@@ -1485,4 +1496,3 @@ Colorpicker::moveEvent(MoveEvent event)
     p->cursor = event.cursor;
     p->update();
 }
-

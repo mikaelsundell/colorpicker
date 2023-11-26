@@ -27,6 +27,8 @@ set (app_sources
     colorwheel.h
     editor.h
     editor.cpp
+    eventfilter.h
+    eventfilter.cpp
     label.h
     label.cpp
     lcms2.cpp
