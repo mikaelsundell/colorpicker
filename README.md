@@ -5,7 +5,7 @@
 Introduction
 ------------
 
-<img src="https://github.com/mikaelsundell/colorpicker/blob/4cd961b3f3679f1149b636c70946bb8dadb5f9d1/resources/Colorpicker.png" width="400" />
+<img src="https://github.com/mikaelsundell/colorpicker/blob/1230ca62c7c94554b4c59d70b181ba1c5f4302ee/resources/Colorpicker.png" width="400" />
 
 colorpicker is a mac app to create color palettes.
 
