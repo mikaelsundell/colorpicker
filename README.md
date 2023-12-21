@@ -1,12 +1,11 @@
-Readme for colorpicker
-======================
+# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50"> 3rdparty #
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
 
 Introduction
 ------------
 
-<img src="https://github.com/mikaelsundell/colorpicker/blob/4cd961b3f3679f1149b636c70946bb8dadb5f9d1/resources/Colorpicker.png" width="400" />
+<img src="https://github.com/mikaelsundell/colorpicker/blob/1230ca62c7c94554b4c59d70b181ba1c5f4302ee/resources/Colorpicker.png" />
 
 colorpicker is a mac app to create color palettes.
 
