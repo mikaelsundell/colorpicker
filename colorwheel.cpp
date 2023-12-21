@@ -244,7 +244,7 @@ ColorwheelPrivate::update()
                 {
                     QTransform world = p.worldTransform();
                     states.push_back(State {
-                        states.count(),
+                        (int)states.count(),
                         color,
                         world.mapRect(rect)
                     });

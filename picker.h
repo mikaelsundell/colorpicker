@@ -3,7 +3,7 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #pragma once
-#include <QMainWindow>
+#include <QWidget>
 
 class PickerPrivate;
 class Picker : public QWidget
@@ -15,10 +15,11 @@ class Picker : public QWidget
         QColor borderColor();
         QColor color();
         void paintEvent(QPaintEvent* event) override;
-    
+
     public Q_SLOTS:
         void setBorderColor(const QColor& color);
         void setColor(const QColor& color);
+        void update(const QPoint& position);
     
     Q_SIGNALS:
         void triggered();

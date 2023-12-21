@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <Cocoa/Cocoa.h>
 
+#include <QMutex>
 #include <QScreen>
 #include <QGuiApplication>
 #include <QApplication>
@@ -80,24 +81,25 @@ namespace
         }
     };
 
-    DisplayInfo
-    grabDisplayInfo(NSScreen* screen)
+    DisplayInfo grabDisplayInfo(NSScreen* screen)
     {
         DisplayInfo display;
         NSDictionary *deviceDescription = [screen deviceDescription];
         CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
         display.displayNumber = displayId;
-        // colorsync callnack for device profile id
+
         ColorSync colorsync;
         colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
         colorsync.deviceProfileUrl = NULL;
+
         ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
+        CFStringRef deviceProfileURL = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
         CFRelease(colorsync.displayUUid);
-        CFStringRef deviceprofileurl = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
         CFRelease(colorsync.deviceProfileUrl);
-        display.displayProfile = deviceprofileurl;
+        display.displayProfile = deviceProfileURL;
         return display;
     }
+
 
     DisplayInfo
     grabDisplayInfo(NSPoint point)

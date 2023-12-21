@@ -5,9 +5,11 @@
 #include "picker.h"
 #include "mac.h"
 
+#include <QGuiApplication>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
+#include <QtGlobal>
 
 class PickerPrivate : public QObject
 {
@@ -15,19 +17,28 @@ class PickerPrivate : public QObject
     public:
         PickerPrivate();
         void init();
-        void update();
+        void mapToGeometry(const QPoint& position);
+        int mapToScale(int value) const;
         bool eventFilter(QObject* object, QEvent* event);
     
     public:
+        void paintPicker();
         QPixmap buffer;
         QColor borderColor;
         QColor color;
-        QCursor cursor;
+        QPoint position;
+        QSize size;
+        QPoint offset;
+        qreal scale;
         QPointer<Picker> widget;
 };
 
 PickerPrivate::PickerPrivate()
 : borderColor(Qt::black)
+, color(Qt::lightGray)
+, offset(QPoint(0.0, 0.0))
+, size(256, 256)
+, scale(0.2)
 {
 }
 
@@ -35,27 +46,81 @@ void
 PickerPrivate::init()
 {
     widget->setAttribute(Qt::WA_TranslucentBackground);
-    widget->resize(64, 64);
+    widget->resize(size);
     widget->setCursor(Qt::BlankCursor);
     widget->installEventFilter(this);
     mac::setupOverlay(widget->winId());
 }
 
 void
-PickerPrivate::update()
+PickerPrivate::mapToGeometry(const QPoint& position)
 {
-    qreal dpr = widget->devicePixelRatio();
-    buffer = QPixmap(widget->size() * dpr);
+    QScreen* screen = QGuiApplication::screenAt(position);
+    int x = position.x() - size.width() / 2;
+    int y = position.y() - size.height() / 2;
+    int width = widget->width();
+    int height = widget->height();
+
+    QRect screenGeometry = screen->geometry();
+    // left
+    if (x < screenGeometry.left()) {
+        width = (x + size.width()) - screenGeometry.left();
+        offset.setX(width-size.width());
+        x = screenGeometry.left();
+    }
+    // right
+    else if (x + size.width() > screenGeometry.right()) {
+        width = size.width() - ((x + size.width()) - screenGeometry.right());
+        x = screenGeometry.right() - width;
+        offset.setX(0);
+    }
+    else {
+        width = size.width();
+        offset.setX(0);
+    }
+    // top
+    if (y < screenGeometry.top()) {
+        height = size.height() + y;
+        offset.setY(y);
+        y = screenGeometry.top();
+    }
+    // bottom
+    else if (y + size.height() > screenGeometry.bottom()) {
+        height = size.height() - ((y + size.height()) - screenGeometry.bottom());
+        y = screenGeometry.bottom() - height;
+        offset.setY(0);
+    }
+    else {
+        height = size.height() ;
+        offset.setY(0);
+    }
+    widget->setGeometry(x, y, width, height);
+    // needed to remove resize handlers
+    widget->setFixedSize(width, height);
+    widget->QWidget::update();
+}
+
+int
+PickerPrivate::mapToScale(int value) const
+{
+    return static_cast<int>(size.height() * scale);
+}
+
+void
+PickerPrivate::paintPicker()
+{
+    QScreen* screen = QGuiApplication::screenAt(position);
+    qreal dpr = screen->devicePixelRatio();
+    // buffer
+    buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
     // painter
     QPainter p(&buffer);
-    qreal scale = 0.4;
-    qreal diameter = std::min(widget->width(), widget->height()) * scale;
+    qreal diameter = std::min(size.width(), size.height()) * scale;
     qreal radius = diameter/2.0;
-    QPointF center(widget->width()/2.0, widget->height()/2.0);
-    QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
-    p.fillRect(widget->rect(), Qt::transparent);
+    QPointF center(size.width()/2.0, size.height()/2.0);
+    QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);;
     QBrush brush = QBrush(borderColor);
     // ellipse
     {
@@ -115,7 +180,7 @@ Picker::Picker()
 {
     p->widget = this;
     p->init();
-    p->update();
+    p->paintPicker();
 }
 
 Picker::~Picker()
@@ -138,6 +203,8 @@ void
 Picker::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
+    painter.fillRect(rect(), Qt::transparent);
+    painter.translate(p->offset.x(), p->offset.y());
     painter.drawPixmap(0, 0, p->buffer);
     painter.end();
 }
@@ -146,15 +213,18 @@ void
 Picker::setBorderColor(const QColor& color)
 {
     p->borderColor = color;
-    p->update();
-    update();
+    p->paintPicker();
 }
 
 void
 Picker::setColor(const QColor& color)
 {
     p->color = color;
-    p->update();
-    update();
+    p->paintPicker();
 }
 
+void
+Picker::update(const QPoint& position)
+{
+    p->mapToGeometry(position);
+}
