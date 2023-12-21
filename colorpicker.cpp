@@ -10,10 +10,10 @@
 #include "mac.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QBuffer>
 #include <QClipboard>
 #include <QDateTime>
-#include <QDesktopWidget>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
@@ -23,6 +23,7 @@
 #include <QPointer>
 #include <QPrinter>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QTextDocument>
 #include <QTextTable>
 #include <QUrl>
@@ -293,14 +294,13 @@ ColorpickerPrivate::init()
     connect(this, SIGNAL(readOnly(bool)), ui->h, SLOT(setReadOnly(bool)));
     connect(this, SIGNAL(readOnly(bool)), ui->s, SLOT(setReadOnly(bool)));
     connect(this, SIGNAL(readOnly(bool)), ui->v, SLOT(setReadOnly(bool)));
-    qApp->setAttribute(Qt::AA_UseHighDpiPixmaps);
     size = window->size();
     // debug
     #ifdef QT_DEBUG
         QMenu* menu = ui->menubar->addMenu("Debug");
         {
             QAction* action = new QAction("Reload stylesheet...", this);
-            action->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_S));
+            action->setShortcut(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S));
             menu->addAction(action);
             connect(action, &QAction::triggered, [&]() {
                 this->stylesheet();
@@ -511,7 +511,7 @@ ColorpickerPrivate::widget()
             picker->setBorderColor(Qt::black);
         }
         picker->setColor(state.color);
-        picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
+        picker->update(cursor);
     }
 }
 
@@ -688,7 +688,7 @@ ColorpickerPrivate::togglePick()
         activate();
         {
             picker->setColor(state.color);
-            picker->move(cursor.x() - picker->width()/2, cursor.y() - picker->height()/2);
+            picker->update(cursor);
             picker->show();
         }
     }
@@ -1276,7 +1276,7 @@ ColorpickerPrivate::pdf()
         QPrinter printer(QPrinter::HighResolution);
         printer.setOutputFormat(QPrinter::PdfFormat);
         printer.setOutputFileName(filename);
-        printer.setPaperSize(QPrinter::A4);
+        printer.setPageSize(QPageSize::A4);
         printer.setColorMode(QPrinter::Color);
         printer.setResolution(300);
         doc->print(&printer);
