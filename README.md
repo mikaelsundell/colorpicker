@@ -1,4 +1,4 @@
-# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50"> 3rdparty #
+# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50"> ColorPicker #
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
 
@@ -7,12 +7,10 @@ Introduction
 
 <img src="https://github.com/mikaelsundell/colorpicker/blob/1230ca62c7c94554b4c59d70b181ba1c5f4302ee/resources/Colorpicker.png" />
 
-colorpicker is a mac app to create color palettes.
+ColorPicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
 Documentation
 -------------
-
-Colorpicker is a macOS app to easily pick colors across different displays. The app supports display profiles, different color formats, clipboard functionality and an interactive colorwheel for color preview. All internal color processing uses LCMS for platform portability.
 
 **How to use**
 
