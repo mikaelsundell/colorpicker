@@ -234,6 +234,7 @@ ColorpickerPrivate::init()
     connect(colorsfilter.data(), SIGNAL(pressed()), ui->toggleColors, SLOT(click()));
     connect(ui->toggleDisplay, SIGNAL(pressed()), this, SLOT(toggleDisplay()));
     connect(ui->toggleColors, SIGNAL(pressed()), this, SLOT(toggleColors()));
+    connect(ui->iccConvertProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(iccConvertProfileChanged(int)));
     connect(ui->r, SIGNAL(triggered()), this, SLOT(toggleR()));
     connect(ui->g, SIGNAL(triggered()), this, SLOT(toggleG()));
     connect(ui->b, SIGNAL(triggered()), this, SLOT(toggleB()));
