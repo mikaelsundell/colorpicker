@@ -9,6 +9,10 @@ Introduction
 
 ColorPicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
+**Important Gatekeeper note**
+
+Use `xattr -cr /Applications/Colorpicker.app` if downloaded from releases to clear attributes added by Gatekeeper.
+
 Documentation
 -------------
 
