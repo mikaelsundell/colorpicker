@@ -29,7 +29,18 @@ Privacy & Security
 
 colorpicker uses macOS to create images from display and needs permission for `Screen recording`. Add Colorpicker app to the list of allowed applications in `System settings`.
 
-Building
+Build & Package
+------------------
+Colorpicker is built using the ```build.sh``` script.
+
+Build all - debug and release:
+```shell
+./build.sh all
+```
+
+Requires 3rdparty build at the same level as Colorpicker.
+
+Colorpicker Advanced
 --------
 
 The Colorpicker app can be built both from commandline or using Xcode `-GXcode`. Use `DYLD_IMAGE_SUFFIX=_debug` environment variable to link and run with Qt debug frameworks.
@@ -38,11 +49,10 @@ The Colorpicker app can be built both from commandline or using Xcode `-GXcode`.
 mkdir build
 cd build
 cmake .. -DCMAKE_MODULE_PATH=<path>/colorpicker/modules -DCMAKE_PREFIX_PATH=<path>/3rdparty/build/macosx/arm64.debug -GXcode
-cmake --build . --config Release -j 8
+cmake --build . --config Release --parallel
 ```
 
-Packaging
----------
+**Packaging**
 
 The `macdeploy.sh` script will deploy mac bundle to dmg including dependencies.
 
