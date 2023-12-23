@@ -41,7 +41,7 @@
       <property name="styleSheet">
        <string notr="true"/>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout">
        <property name="spacing">
         <number>0</number>
        </property>
@@ -58,7 +58,7 @@
         <number>0</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QHBoxLayout">
          <property name="spacing">
           <number>4</number>
          </property>
@@ -125,7 +125,7 @@
         <number>0</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QHBoxLayout">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -257,11 +257,11 @@
          </item>
          <item>
           <widget class="QWidget" name="widget_3" native="true">
-           <layout class="QVBoxLayout" name="verticalLayout_14">
+           <layout class="QVBoxLayout">
             <item>
-             <layout class="QVBoxLayout" name="verticalLayout_4">
+             <layout class="QVBoxLayout">
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <layout class="QHBoxLayout">
                 <item>
                  <widget class="QLabel" name="display_5">
                   <property name="font">
@@ -289,7 +289,7 @@
                  </spacer>
                 </item>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_10">
+                 <layout class="QHBoxLayout">
                   <property name="spacing">
                    <number>0</number>
                   </property>
@@ -380,7 +380,7 @@
                </widget>
               </item>
               <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <layout class="QHBoxLayout">
                 <item>
                  <layout class="QFormLayout" name="hsvlayout">
                   <property name="labelAlignment">
@@ -683,7 +683,7 @@
       <property name="styleSheet">
        <string notr="true"/>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout">
        <property name="spacing">
         <number>0</number>
        </property>
@@ -700,7 +700,7 @@
         <number>0</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
+        <layout class="QHBoxLayout">
          <property name="spacing">
           <number>4</number>
          </property>
@@ -1073,7 +1073,7 @@
         </layout>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <layout class="QHBoxLayout">
          <property name="spacing">
           <number>0</number>
          </property>

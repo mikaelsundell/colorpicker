@@ -1162,7 +1162,7 @@ ColorpickerPrivate::pdf()
     cursor.insertHtml("<br>");
     // table
     {
-        QTextTable* table = cursor.insertTable(states.count()+1, 5);
+        QTextTable* table = cursor.insertTable(static_cast<int>(states.count()) + 1, 5);
         QTextCharFormat headerformat;
         headerformat.setForeground(window->palette().text());
         headerformat.setBackground(window->palette().base());
