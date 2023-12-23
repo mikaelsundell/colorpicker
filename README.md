@@ -49,6 +49,16 @@ Colorpicker Advanced
 
 The Colorpicker app can be built both from commandline or using Xcode `-GXcode`. Use `DYLD_IMAGE_SUFFIX=_debug` environment variable to link and run with Qt debug frameworks.
 
+## CMake configuration ##
+
+Add cmake to path:
+
+```shell
+export PATH=$PATH:/Applications/CMake.app/Contents/bin
+```
+
+## Build configuration ##
+
 ```shell
 mkdir build
 cd build

@@ -92,8 +92,8 @@ namespace lcms2
             transformimage.bits(),
             image.width(),
             image.height(),
-            image.bytesPerLine(),
-            transformimage.bytesPerLine(),
+            static_cast<cmsUInt32Number>(image.bytesPerLine()),
+            static_cast<cmsUInt32Number>(transformimage.bytesPerLine()),
             0,
             0);
         QPixmap transformpixmap = QPixmap::fromImage(transformimage);

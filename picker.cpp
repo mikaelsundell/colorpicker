@@ -17,8 +17,9 @@ class PickerPrivate : public QObject
     public:
         PickerPrivate();
         void init();
-        void mapToGeometry(const QPoint& position);
+        void mapToGeometry();
         int mapToScale(int value) const;
+        QSize mapToSize() const;
         bool eventFilter(QObject* object, QEvent* event);
     
     public:
@@ -26,9 +27,10 @@ class PickerPrivate : public QObject
         QPixmap buffer;
         QColor borderColor;
         QColor color;
-        QPoint position;
-        QSize size;
         QPoint offset;
+        QPoint position;
+        QSize baseSize;
+        qreal factor;
         qreal scale;
         QPointer<Picker> widget;
 };
@@ -37,8 +39,9 @@ PickerPrivate::PickerPrivate()
 : borderColor(Qt::black)
 , color(Qt::lightGray)
 , offset(QPoint(0.0, 0.0))
-, size(256, 256)
-, scale(0.2)
+, baseSize(256, 256)
+, scale(0.8)
+, factor(0.5)
 {
 }
 
@@ -46,21 +49,24 @@ void
 PickerPrivate::init()
 {
     widget->setAttribute(Qt::WA_TranslucentBackground);
-    widget->resize(size);
+    widget->resize(mapToSize());
     widget->setCursor(Qt::BlankCursor);
     widget->installEventFilter(this);
     mac::setupOverlay(widget->winId());
 }
 
 void
-PickerPrivate::mapToGeometry(const QPoint& position)
+PickerPrivate::mapToGeometry()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
+    QSize size = mapToSize();
+    
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
     int width = widget->width();
     int height = widget->height();
-
+    
+    
     QRect screenGeometry = screen->geometry();
     // left
     if (x < screenGeometry.left()) {
@@ -103,7 +109,13 @@ PickerPrivate::mapToGeometry(const QPoint& position)
 int
 PickerPrivate::mapToScale(int value) const
 {
-    return static_cast<int>(size.height() * scale);
+    return static_cast<int>(mapToSize().height() * scale);
+}
+
+QSize
+PickerPrivate::mapToSize() const
+{
+    return baseSize * factor;
 }
 
 void
@@ -111,6 +123,8 @@ PickerPrivate::paintPicker()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     qreal dpr = screen->devicePixelRatio();
+    // size
+    QSize size = mapToSize();
     // buffer
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
@@ -153,6 +167,18 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         {
             widget->hide();
             widget->closed();
+        }
+        else if (keyEvent->key() == Qt::Key_Plus)
+        {
+            factor = qMin(factor + 0.1, 0.9);
+            paintPicker();
+            mapToGeometry(); // needed to update mask
+        }
+        else if (keyEvent->key() == Qt::Key_Minus)
+        {
+            factor = qMax(factor - 0.1, 0.1);
+            paintPicker();
+            mapToGeometry(); // needed to update mask
         }
     }
     
@@ -226,5 +252,6 @@ Picker::setColor(const QColor& color)
 void
 Picker::update(const QPoint& position)
 {
-    p->mapToGeometry(position);
+    p->position = position;
+    p->mapToGeometry();
 }

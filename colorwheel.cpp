@@ -21,6 +21,7 @@ class ColorwheelPrivate : public QObject
         QColor mapToColor(const QPoint& point) const;
         QColor mapToColor(const QColor& color, const QPoint& point) const;
         qreal mapToDegrees(qreal radians) const;
+    
     public:
         class State
         {
@@ -515,7 +516,7 @@ Colorwheel::setColors(const QList<QPair<QColor,QString>> colors, bool selected)
 {
     p->colors = colors;
     if (selected)
-        p->selected = colors.count() - 1;
+        p->selected = static_cast<int>(colors.count()) - 1;
     p->update();
     update();
 }
