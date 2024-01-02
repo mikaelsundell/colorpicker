@@ -121,8 +121,13 @@ build_colorpicker() {
     cmake .. -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -G Xcode &&
     cmake --build . --config $xcode_type --parallel
 
+    dmg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
+    if [ -f "$dmg_file" ]; then
+        rm -f "$dmg_file"
+    fi
+
     # deploy
-    $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt" -d "$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
+    $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
     if [ "$sign_code" == "ON" ]; then
         codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
     fi
