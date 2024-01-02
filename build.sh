@@ -46,7 +46,7 @@ if [ "$sign_code" == "ON" ]; then
     read -p "Enter Code Sign Identity [$default_code_sign_identity]: " input_code_sign_identity
     code_sign_identity=${input_code_sign_identity:-$default_code_sign_identity}
 
-    if [[ ! "$input_code_sign_identity" == *"Developer ID"* ]]; then
+    if [[ ! "$code_sign_identity" == *"Developer ID"* ]]; then
         echo "Code Sign identity must contain 'Developer ID' to be a valid developer certificate."
         exit 1
     fi
