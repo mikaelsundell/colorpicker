@@ -60,6 +60,7 @@ set (bundle_sources
 )
 
 if (APPLE)
+    set (MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.mikaelsundell.colorpicker")
     set (MACOSX_BUNDLE_EXECUTABLE_NAME ${project_name})
     set (MACOSX_BUNDLE_INFO_STRING ${project_name})
     set (MACOSX_BUNDLE_BUNDLE_NAME ${project_name})
@@ -71,8 +72,22 @@ if (APPLE)
     set (MACOSX_DEPLOYMENT_TARGET ${DEPLOYMENT_TARGET})
     set (CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
     set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    # executable
     add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources})
+    # code signing
+    if (SIGN_CODE)
+        if (CODE_SIGN_IDENTITY STREQUAL "" OR DEVELOPMENT_TEAM_ID STREQUAL "")
+            message (FATAL_ERROR "Code signing is enabled, but CODE_SIGN_IDENTITY or DEVELOPMENT_TEAM_ID is not set.")
+        else ()
+            message ("Code signing enabled for Xcode")
+            message ("  Sign identify: ${CODE_SIGN_IDENTITY}")
+            message ("  Development team: ${DEVELOPMENT_TEAM_ID}")
+        endif()
+        set_target_properties(${project_name} PROPERTIES
+            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${CODE_SIGN_IDENTITY}"
+            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${DEVELOPMENT_TEAM_ID}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${MACOSX_BUNDLE_GUI_IDENTIFIER}"
+        )
+    endif()
     set_target_properties(${project_name} PROPERTIES
         OUTPUT_NAME ${project_name}
         MACOSX_FRAMEWORK_INFO_PLIST ${bundle_sources})

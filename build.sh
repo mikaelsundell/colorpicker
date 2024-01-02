@@ -8,6 +8,53 @@ machine_arch=$(uname -m)
 macos_version=$(sw_vers -productVersion)
 major_version=$(echo "$macos_version" | cut -d '.' -f 1)
 
+# signing
+sign_code=OFF
+code_sign_identity=""
+development_team_id=""
+
+# check signing
+parse_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --target=*) 
+                major_version="${1#*=}" ;;
+            --sign)
+                sign_code=ON ;;
+            *)
+                build_type="$1" # save it in build_type if it's not a recognized flag
+                ;;
+        esac
+        shift
+    done
+}
+parse_args "$@"
+
+# target
+if [ -z "$major_version" ]; then
+    macos_version=$(sw_vers -productVersion)
+    major_version=$(echo "$macos_version" | cut -d '.' -f 1)
+fi
+export MACOSX_DEPLOYMENT_TARGET=$major_version
+export CMAKE_OSX_DEPLOYMENT_TARGET=$major_version
+
+# signing
+if [ "$sign_code" == "ON" ]; then
+    default_code_sign_identity=${CODE_SIGN_IDENTITY:-}
+    default_development_team_id=${DEVELOPMENT_TEAM_ID:-}
+
+    read -p "enter Code Sign Identity [$default_code_sign_identity]: " input_code_sign_identity
+    code_sign_identity=${input_code_sign_identity:-$default_code_sign_identity}
+
+    if [[ ! "$input_code_sign_identity" == *"Developer ID"* ]]; then
+        echo "code sign identity must contain 'Developer ID'."
+        exit 1
+    fi
+
+    read -p "enter Development Team ID [$default_development_team_id]: " input_development_team_id
+    development_team_id=${input_development_team_id:-$default_development_team_id}
+fi
+
 # exit on error
 set -e 
 
