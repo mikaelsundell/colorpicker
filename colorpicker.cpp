@@ -133,7 +133,7 @@ class ColorpickerPrivate : public QObject
                 int magnify;
                 QPixmap buffer;
                 QPoint cursor;
-                QScreen* screen;
+                QPoint origin;
                 int displayNumber;
                 QString iccProfile;
                 QString iccDisplayProfile;
@@ -407,7 +407,7 @@ ColorpickerPrivate::update()
           magnify,
           buffer,
           cursor,
-          screen,
+          screen->geometry().topLeft(),
           displayNumber,
           iccProfile,
           iccDisplayProfile,
@@ -485,7 +485,7 @@ ColorpickerPrivate::widget()
     }
     // mouse location
     {
-        QPoint screenpos = state.cursor - state.screen->geometry().topLeft();
+        QPoint screenpos = state.cursor - state.origin;
         ui->mouseLocation->setText(QString("(%1, %2)").arg(screenpos.x()).arg(screenpos.y()));
     }
     // colorwheel
