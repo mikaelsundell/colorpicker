@@ -123,6 +123,15 @@ build_colorpicker() {
 
     # deploy
     $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt" -d "$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
+    if [ "$sign_code" == "ON" ]; then
+        codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
+    fi
+
+    # deploydmg
+    $script_dir/scripts/macdmg.sh -b "$xcode_type/Colorpicker.app" -d "$dmg_file"
+    if [ "$sign_code" == "ON" ]; then
+        codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime --verbose "$dmg_file"
+    fi
 }
 
 # build types
