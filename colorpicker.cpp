@@ -1110,7 +1110,7 @@ ColorpickerPrivate::pdf()
     QString datestamp =
         QString("%2 at %3").
         arg(datetime.toString("yyyy-MM-dd")).
-        arg(datetime.toString("hh.mm.ss"));
+        arg(datetime.toString("hh:mm:ss"));
     
     QString filename =
         QString("%1/Colorpicker %2.pdf").
