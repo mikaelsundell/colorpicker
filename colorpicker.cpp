@@ -131,7 +131,7 @@ class ColorpickerPrivate : public QObject
                 about->github->setTextFormat(Qt::RichText);
                 about->github->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 about->github->setOpenExternalLinks(true);
-                QFile file(":/files/resources/License.txt");
+                QFile file(":/files/resources/Copyright.txt");
                 file.open(QIODevice::ReadOnly | QIODevice::Text);
                 QTextStream in(&file);
                 QString text = in.readAll();

@@ -8,9 +8,8 @@
     <file>resources/Pdf.png</file>
     <file>resources/Picker.png</file>
     <file>resources/Clear.png</file>
-    <file>resources/License.txt</file>
   </qresource>
    <qresource prefix="files">
-    <file>resources/License.txt</file>
+    <file>resources/Copyright.txt</file>
   </qresource>
 </RCC>

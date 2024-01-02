@@ -98,6 +98,18 @@ function deploy_dmg() {
     # applications
     ln -s "/Applications" "$dmg_volume/Applications"
 
+    # github
+    cat > "$dmg_volume/Github project.webloc" <<EOL
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>URL</key>
+    <string>https://github.com/mikaelsundell/colorpicker</string>
+</dict>
+</plist>
+EOL
+
     # detach and convert
     hdiutil detach "$dmg_device"
     hdiutil convert "$dmg_dir" -format UDZO -imagekey zlib-level=9 -o "$dmg"
