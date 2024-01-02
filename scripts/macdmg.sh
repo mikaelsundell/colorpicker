@@ -92,7 +92,7 @@ function deploy_dmg() {
 
     # dsstore
     # must be created with the same id, use temporary dmg to modify and copy afterwards
-    resources_dir=$(dirname ${script})/../sources/colorman/resources
+    resources_dir=$(dirname ${script})/../resources
     cp "${resources_dir}/DS_Store" "$dmg_volume/.DS_Store"
 
     # applications

@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="icons">
+    <file>resources/AppIcon.png</file>
     <file>resources/Pin.png</file>
     <file>resources/Collapse.png</file>
     <file>resources/Expand.png</file>

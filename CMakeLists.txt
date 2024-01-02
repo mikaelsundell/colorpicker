@@ -52,6 +52,7 @@ file( GLOB app_resources
     "resources/*.icc"
     "resources/*.css"
     "resources/App*.png"
+    "resources/license.txt"
 )
 
 # bundle
@@ -73,6 +74,9 @@ if (APPLE)
     set (CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
     set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources})
+    # definitions
+    add_definitions(-DMACOSX_BUNDLE_COPYRIGHT="${MACOSX_BUNDLE_COPYRIGHT}")
+    add_definitions(-DGITHUBURL="https://github.com/mikaelsundell/colorpicker")
     # code signing
     if (SIGN_CODE)
         if (CODE_SIGN_IDENTITY STREQUAL "" OR DEVELOPMENT_TEAM_ID STREQUAL "")
