@@ -1,4 +1,4 @@
-# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50"> ColorPicker #
+# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50"> Colorpicker #
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
 
@@ -7,11 +7,7 @@ Introduction
 
 <img src="https://github.com/mikaelsundell/colorpicker/blob/1230ca62c7c94554b4c59d70b181ba1c5f4302ee/resources/Colorpicker.png" />
 
-ColorPicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
-
-**Important Gatekeeper note**
-
-Use `xattr -cr /Applications/Colorpicker.app` if downloaded from releases to clear attributes added by Gatekeeper.
+Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
 Documentation
 -------------
@@ -68,10 +64,16 @@ cmake --build . --config Release --parallel
 
 **Packaging**
 
-The `macdeploy.sh` script will deploy mac bundle to dmg including dependencies.
+The `macdeploy.sh` script will deploy mac bundle including dependencies.
 
 ```shell
-./macdeploy.sh -b <path>/Colorpicker.app -m <path>/macdeployqt -d <path>/Colorpicker_macOS12_<arch>.dmg
+./macdeploy.sh -b <path>/Colorpicker.app -m <path>/macdeployqt
+```
+
+The `macdmg.sh` script will create a application disk image.
+
+```shell
+./macdmg.sh -d <path>/Colorpicker_macOS12_<arch>.dmg
 ```
 
 Web Resources
@@ -83,5 +85,23 @@ Web Resources
 Copyright
 ---------
 
-* LCMS                https://littlecms.com
-* App icon            https://www.flaticon.com/free-icons/color
+**3rdparty libraries acknowledgment and copyright notice**
+
+This product includes software developed by third parties. The copyrights and terms of use of these third-party libraries are fully acknowledged and respected. Below is a list of said libraries and their respective copyright notices:
+
+App icon: Copyright flaticon.com
+
+Giflib: Copyright (c) 1997 by Eric S. Raymond. All rights reserved.
+
+LCMS2: Copyright (c) 1998-2012 by Marti Maria Saguer. All rights reserved.
+
+Libjpeg-turbo: Copyright (C) 1994-1997 by Thomas G. Lane. Modifications in 2019 by Guido Vollbeding. All rights reserved.
+
+LibWebp: Copyright 2010 by Google Inc. All Rights Reserved.
+
+Tiff: Copyright (c) 1988-1997 by Sam Leffler and Copyright (c) 1991-1997 by Silicon Graphics, Inc. All rights reserved.
+
+The Qt Company Ltd.: Copyright (C) 2016 by The Qt Company Ltd. All rights reserved.
+
+The use of the above-mentioned software within this product is in compliance with the respective licenses and/or terms and conditions of the copyright holders. The inclusion of these third-party libraries does not imply any endorsement by the copyright holders of the products developed using their software.
+

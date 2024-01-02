@@ -118,11 +118,24 @@ class ColorpickerPrivate : public QObject
     public:
         class About : public QDialog
         {
-            public: About()
+            public: About(QWidget *parent = nullptr)
+            : QDialog(parent)
             {
                 QScopedPointer<Ui_About> about;
                 about.reset(new Ui_About());
                 about->setupUi(this);
+                about->copyright->setText(MACOSX_BUNDLE_COPYRIGHT);
+                QString url = GITHUBURL;
+                about->github->setText(QString("Github project: <a href='%1'>%1</a>").arg(url));
+                about->github->setTextFormat(Qt::RichText);
+                about->github->setTextInteractionFlags(Qt::TextBrowserInteraction);
+                about->github->setOpenExternalLinks(true);
+                QFile file(QApplication::applicationDirPath() + "/../Resources/license.txt");
+                Q_ASSERT(file.open(QIODevice::ReadOnly | QIODevice::Text));
+                QTextStream in(&file);
+                QString text = in.readAll();
+                file.close();
+                about->licenses->setText(text);
             }
         };
         class State
@@ -1288,8 +1301,8 @@ ColorpickerPrivate::pdf()
 void
 ColorpickerPrivate::about()
 {
-    QPointer<About> about = new About();
-    about->show();
+    QPointer<About> about = new About(window.data());
+    about->exec();
 }
 
 void

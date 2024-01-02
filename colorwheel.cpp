@@ -92,7 +92,7 @@ ColorwheelPrivate::update()
     p.fillRect(widget->rect(), widget->palette().base());
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     p.translate(center.x(), center.y());
-    p.rotate(angle * 360);
+    p.rotate(angle * 360 - 90);
     // background
     {
         p.save();
