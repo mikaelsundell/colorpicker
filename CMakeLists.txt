@@ -52,7 +52,6 @@ file( GLOB app_resources
     "resources/*.icc"
     "resources/*.css"
     "resources/App*.png"
-    "resources/license.txt"
 )
 
 # bundle
