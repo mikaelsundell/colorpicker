@@ -10,4 +10,7 @@
     <file>resources/Clear.png</file>
     <file>resources/License.txt</file>
   </qresource>
+   <qresource prefix="files">
+    <file>resources/License.txt</file>
+  </qresource>
 </RCC>

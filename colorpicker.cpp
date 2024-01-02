@@ -64,6 +64,7 @@ class ColorpickerPrivate : public QObject
         void activate();
         void deactivate();
         bool eventFilter(QObject* object, QEvent* event);
+        bool blocked();
     
     public Q_SLOTS:
         void toggleDisplay();
@@ -130,8 +131,8 @@ class ColorpickerPrivate : public QObject
                 about->github->setTextFormat(Qt::RichText);
                 about->github->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 about->github->setOpenExternalLinks(true);
-                QFile file(":/resources/License.txt");
-                Q_ASSERT(file.open(QIODevice::ReadOnly | QIODevice::Text));
+                QFile file(":/files/resources/License.txt");
+                file.open(QIODevice::ReadOnly | QIODevice::Text);
                 QTextStream in(&file);
                 QString text = in.readAll();
                 file.close();
@@ -625,6 +626,16 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
     if (event->type() == QEvent::Close)
     {
         lcms2::clear();
+    }
+    return false;
+}
+
+bool
+ColorpickerPrivate::blocked()
+{
+    QWidget* widget = QApplication::activeModalWidget();
+    if (widget) {
+        return widget == window.data() || widget->isAncestorOf(widget) || widget->window() == widget->window();
     }
     return false;
 }
@@ -1498,15 +1509,19 @@ Colorpicker::active() const
 void
 Colorpicker::pickEvent(PickEvent event)
 {
-    p->displayNumber = event.displayNumber;
-    p->iccProfile = event.iccProfile;
-    p->cursor = event.cursor;
-    p->update();
+    if (!p->blocked()) {
+        p->displayNumber = event.displayNumber;
+        p->iccProfile = event.iccProfile;
+        p->cursor = event.cursor;
+        p->update();
+    }
 }
 
 void
 Colorpicker::moveEvent(MoveEvent event)
 {
-    p->cursor = event.cursor;
-    p->update();
+    if (!p->blocked()) {
+        p->cursor = event.cursor;
+        p->update();
+    }
 }

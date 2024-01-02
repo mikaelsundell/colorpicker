@@ -1,4 +1,4 @@
-3rdparty libraries acknowledgment and copyright notice
+3rdparty libraries acknowledgment and copyright notice:
 
 This product includes software developed by third parties. The copyrights and terms of use of these third-party libraries are fully acknowledged and respected. Below is a list of said libraries and their respective copyright notices:
 
