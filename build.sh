@@ -43,15 +43,15 @@ if [ "$sign_code" == "ON" ]; then
     default_code_sign_identity=${CODE_SIGN_IDENTITY:-}
     default_development_team_id=${DEVELOPMENT_TEAM_ID:-}
 
-    read -p "enter Code Sign Identity [$default_code_sign_identity]: " input_code_sign_identity
+    read -p "Enter Code Sign Identity [$default_code_sign_identity]: " input_code_sign_identity
     code_sign_identity=${input_code_sign_identity:-$default_code_sign_identity}
 
     if [[ ! "$input_code_sign_identity" == *"Developer ID"* ]]; then
-        echo "code sign identity must contain 'Developer ID'."
+        echo "Code Sign identity must contain 'Developer ID' to be a valid developer certificate."
         exit 1
     fi
 
-    read -p "enter Development Team ID [$default_development_team_id]: " input_development_team_id
+    read -p "Enter Development Team ID [$default_development_team_id]: " input_development_team_id
     development_team_id=${input_development_team_id:-$default_development_team_id}
 fi
 
