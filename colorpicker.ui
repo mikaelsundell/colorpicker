@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>419</width>
-    <height>861</height>
+    <width>450</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -1201,8 +1201,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>419</width>
-     <height>37</height>
+     <width>450</width>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="viewMenu">

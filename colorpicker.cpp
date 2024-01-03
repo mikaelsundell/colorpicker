@@ -219,6 +219,9 @@ ColorpickerPrivate::init()
     // ui
     ui.reset(new Ui_Colorpicker());
     ui->setupUi(window);
+    // layout
+    // needed to keep .ui fixed size from setupUi
+    window->setFixedSize(window->size());
     // utils
     picker.reset(new Picker());
     editor.reset(new Editor());

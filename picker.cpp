@@ -40,7 +40,7 @@ PickerPrivate::PickerPrivate()
 , color(Qt::lightGray)
 , offset(QPoint(0.0, 0.0))
 , baseSize(256, 256)
-, scale(0.8)
+, scale(0.5)
 , factor(0.5)
 {
 }
