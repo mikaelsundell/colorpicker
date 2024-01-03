@@ -11,7 +11,7 @@ Colorpicker is a versatile Mac application designed to select and capture colors
 
 |  Download        | Description |
 | ----------------| ----------- |
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorman v0.0.8](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.8/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.8/Colorpicker_macOS12_arm64_release.dmg)
+|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorman v0.0.10](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.10/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.10/Colorpicker_macOS12_arm64_release.dmg)
 
 
 Documentation
