@@ -43,6 +43,7 @@ class ColorwheelPrivate : public QObject
         qreal backgroundOpacity;
         qreal scale;
         qreal zoomFactor;
+        qreal offsetFactor;
         bool iqlineVisible;
         bool saturationVisible;
         bool labelsVisible;
@@ -59,8 +60,9 @@ ColorwheelPrivate::ColorwheelPrivate()
 , markerSize(0.5)
 , borderOpacity(1.0)
 , backgroundOpacity(0.5)
-, scale(0.85)
+, scale(0.80)
 , zoomFactor(1.0)
+, offsetFactor(-90)
 , iqlineVisible(false)
 , saturationVisible(false)
 , labelsVisible(false)
@@ -92,7 +94,7 @@ ColorwheelPrivate::update()
     p.fillRect(widget->rect(), widget->palette().base());
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     p.translate(center.x(), center.y());
-    p.rotate(angle * 360 - 90);
+    p.rotate(angle * 360 + offsetFactor);
     // background
     {
         p.save();
@@ -160,10 +162,13 @@ ColorwheelPrivate::update()
                         label = "G-";
                     if (angle == y)
                         label = "Y-";
-                    
+                
                     QString text = QString("%1%2°").arg(label).arg(angle);
-                    QRect rect = metrics.boundingRect(text);
                     QPointF pos = transform.map(QPointF(length, 0));
+                    
+                    qreal pad = 5; // bit more space around text
+                    QRect rect = metrics.boundingRect(text);
+                    rect.adjust(-pad, -pad, pad, pad);
                     
                     if (qAbs(pos.x() - center.x()) < rect.width())
                         pos.setX(pos.x() - rect.width()/2);
@@ -427,7 +432,7 @@ ColorwheelPrivate::mapToColor(const QPoint& point) const
     qreal radius = diameter/2.0;
     QPointF center = widget->rect().center();
     QTransform transform;
-    transform.rotate(angle * 360);
+    transform.rotate(angle * 360 + offsetFactor);
     // pos - map without rotation applied
     QPointF pos = transform.inverted().map(point - center);
     qreal hue = mapToDegrees(atan2(-pos.y(), pos.x()));
