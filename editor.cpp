@@ -97,9 +97,22 @@ EditorPrivate::update()
 bool
 EditorPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (event->type() == QEvent::WindowDeactivate) {
-        widget->hide();
+    if (event->type() == QEvent::KeyPress)
+    {
+        QKeyEvent* keyEvent = (QKeyEvent*)event;
+        if (keyEvent->key() == Qt::Key_Escape)
+        {
+            widget->hide();
+            return true;
+        }
     }
+    if (event->type() == QEvent::WindowDeactivate) {
+        if (widget->isVisible())
+        {
+            widget->hide();
+        }
+    }
+    return false;
 }
 
 #include "editor.moc"
@@ -161,6 +174,5 @@ Editor::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.drawPixmap(0, 0, p->buffer);
     painter.end();
-    
     QWidget::paintEvent(event);
 }

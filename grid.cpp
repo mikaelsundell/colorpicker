@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/mikaelsundell/colorpicker
 
-#include "picker.h"
+#include "grid.h"
 #include "mac.h"
 
 #include <QGuiApplication>
@@ -11,11 +11,11 @@
 #include <QPointer>
 #include <QtGlobal>
 
-class PickerPrivate : public QObject
+class GridPrivate : public QObject
 {
     Q_OBJECT
     public:
-        PickerPrivate();
+        GridPrivate();
         void init();
         void mapToGeometry();
         int mapToScale(int value) const;
@@ -23,32 +23,34 @@ class PickerPrivate : public QObject
         bool eventFilter(QObject* object, QEvent* event);
     
     public:
-        void paintPicker();
+        void paintGrid();
         QPixmap buffer;
         QColor borderColor;
-        QColor color;
         QPoint offset;
+        QPoint origin;
         QPoint position;
         QSize baseSize;
         qreal factor;
         qreal scale;
-        QPointer<Picker> widget;
+        bool drag;
+        QPointer<Grid> widget;
 };
 
-PickerPrivate::PickerPrivate()
+GridPrivate::GridPrivate()
 : borderColor(Qt::black)
-, color(Qt::lightGray)
 , offset(QPoint(0.0, 0.0))
+, origin(QPoint(0.0, 0.0))
 , baseSize(256, 256)
 , scale(0.4)
 , factor(0.5)
+, drag(false)
 {
 }
 
 void
-PickerPrivate::init()
+GridPrivate::init()
 {
-    widget->setAttribute(Qt::WA_TranslucentBackground);
+    //widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->resize(mapToSize());
     widget->setCursor(Qt::BlankCursor);
     widget->installEventFilter(this);
@@ -56,7 +58,7 @@ PickerPrivate::init()
 }
 
 void
-PickerPrivate::mapToGeometry()
+GridPrivate::mapToGeometry()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     QSize size = mapToSize();
@@ -65,7 +67,6 @@ PickerPrivate::mapToGeometry()
     int y = position.y() - size.height() / 2;
     int width = widget->width();
     int height = widget->height();
-    
     
     QRect screenGeometry = screen->geometry();
     // left
@@ -107,19 +108,19 @@ PickerPrivate::mapToGeometry()
 }
 
 int
-PickerPrivate::mapToScale(int value) const
+GridPrivate::mapToScale(int value) const
 {
     return static_cast<int>(mapToSize().height() * scale);
 }
 
 QSize
-PickerPrivate::mapToSize() const
+GridPrivate::mapToSize() const
 {
     return baseSize * factor;
 }
 
 void
-PickerPrivate::paintPicker()
+GridPrivate::paintGrid()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     qreal dpr = screen->devicePixelRatio();
@@ -127,22 +128,20 @@ PickerPrivate::paintPicker()
     QSize size = mapToSize();
     // buffer
     buffer = QPixmap(size * dpr);
-    buffer.fill(Qt::transparent);
+    // TODO: buffer.fill(Qt::transparent);
+    
+    if (drag)
+        buffer.fill(Qt::green);
+    else
+        buffer.fill(Qt::gray);
+    
     buffer.setDevicePixelRatio(dpr);
     // painter
     QPainter p(&buffer);
     qreal diameter = std::min(size.width(), size.height()) * scale;
     qreal radius = diameter/2.0;
     QPointF center(size.width()/2.0, size.height()/2.0);
-    QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);;
     QBrush brush = QBrush(borderColor);
-    // ellipse
-    {
-        p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(brush, 1.0));
-        p.setBrush(QBrush(color));
-        p.drawEllipse(rect);
-    }
     // cross
     p.translate(center.x(), center.y());
     {
@@ -158,7 +157,7 @@ PickerPrivate::paintPicker()
 }
 
 bool
-PickerPrivate::eventFilter(QObject* object, QEvent* event)
+GridPrivate::eventFilter(QObject* object, QEvent* event)
 {
     if (event->type() == QEvent::KeyPress)
     {
@@ -171,13 +170,13 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         else if (keyEvent->key() == Qt::Key_Plus)
         {
             factor = qMin(factor + 0.1, 0.8);
-            paintPicker();
+            paintGrid();
             mapToGeometry(); // needed to update mask
         }
         else if (keyEvent->key() == Qt::Key_Minus)
         {
             factor = qMax(factor - 0.1, 0.4);
-            paintPicker();
+            paintGrid();
             mapToGeometry(); // needed to update mask
         }
     }
@@ -186,47 +185,67 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
     {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
-            widget->triggered();
+            
+            qDebug() << "Starting to drag ...";
+            qDebug() << " position: " << position;
+            
+            origin = position;
+            drag = true;
+            //widget->triggered();
         }
         
         if (mouseEvent->button() == Qt::RightButton) {
             widget->hide();
             widget->closed();
+            drag = false;
+        }
+    }
+    
+    if (event->type() == QEvent::QEvent::MouseButtonRelease)
+    {
+        QMouseEvent* mouseEvent = (QMouseEvent*)event;
+        if (mouseEvent->button() == Qt::LeftButton) {
+            
+            qDebug() << "Drag finished ...";
+            
+            drag = false;
+            
+            //widget->triggered();
+        }
+        
+        if (mouseEvent->button() == Qt::RightButton) {
+            widget->hide();
+            widget->closed();
+            drag = false;
         }
     }
 }
 
-#include "picker.moc"
+#include "grid.moc"
 
-Picker::Picker()
+Grid::Grid()
 : QWidget(nullptr,
   Qt::Window |
   Qt::FramelessWindowHint)
-, p(new PickerPrivate())
+, p(new GridPrivate())
 {
     p->widget = this;
     p->init();
-    p->paintPicker();
+    p->paintGrid();
 }
 
-Picker::~Picker()
+Grid::~Grid()
 {
 }
 
 QColor
-Picker::borderColor()
+Grid::borderColor()
 {
     return p->borderColor;
 }
 
-QColor
-Picker::color()
-{
-    return p->color;
-}
-
 void
-Picker::paintEvent(QPaintEvent* event)
+Grid::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
     painter.fillRect(rect(), Qt::transparent);
@@ -236,21 +255,14 @@ Picker::paintEvent(QPaintEvent* event)
 }
 
 void
-Picker::setBorderColor(const QColor& color)
+Grid::setBorderColor(const QColor& color)
 {
     p->borderColor = color;
-    p->paintPicker();
+    p->paintGrid();
 }
 
 void
-Picker::setColor(const QColor& color)
-{
-    p->color = color;
-    p->paintPicker();
-}
-
-void
-Picker::update(const QPoint& position)
+Grid::update(const QPoint& position)
 {
     p->position = position;
     p->mapToGeometry();

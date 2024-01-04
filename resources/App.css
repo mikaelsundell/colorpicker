@@ -8,14 +8,14 @@
 QMainWindow,
 QDialog
 {
-    background-color: hsl(220,55,4);
+    background-color: hsl(220,55%,4%);
 }
 
 /* QWidgets widgets */
 
 QWidget#displayBar
 {
-    background-color: hsl(220,55,18);
+    background-color: hsl(214, 24%, 6%);
     border-radius: 5px;
     border-bottom-left-radius: 0px;
     border-bottom-right-radius: 0px;
@@ -23,7 +23,7 @@ QWidget#displayBar
 
 QWidget#displayWidget
 {
-    background-color: hsl(220,55,12);
+    background-color: hsl(220, 25%, 5%);
     border-radius: 5px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
@@ -31,7 +31,7 @@ QWidget#displayWidget
 
 QWidget#colorsBar
 {
-    background-color: hsl(220,55,18);
+    background-color: hsl(214, 24%, 6%);
     border-radius: 5px;
     border-bottom-left-radius: 0px;
     border-bottom-right-radius: 0px;
@@ -39,7 +39,7 @@ QWidget#colorsBar
 
 QWidget#colorsWidget
 {
-    background-color: hsl(220,55,12);
+    background-color: hsl(220, 25%, 5%);
     border-radius: 5px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
@@ -47,21 +47,21 @@ QWidget#colorsWidget
 
 QWidget#mouseLocation
 {
-    background-color: hsl(0,0,0);
+    background-color: hsl(0,0%,0%);
 }
 
 QWidget:checked#toggleActive
 {
     padding: 2px;
-    background-color: hsl(120,55,50);
-    border: 1 solid hsl(120,55,70);
+    background-color: hsl(216, 82%, 47%);
+    border: 1 solid hsl(216, 82%, 47%);
 }
 
 QWidget:checked#togglePin
 {
     padding: 2px;
-    background-color: hsl(120,55,50);
-    border: 1 solid hsl(120,55,70);
+    background-color: hsl(216, 82%, 47%);
+    border: 1 solid hsl(216, 82%, 47%);
 }
 
 /* QFrame widgets */
@@ -100,7 +100,7 @@ QToolButton#toggleColors
 QSlider::groove:horizontal
 {
     height: 5px;
-    background-color: hsl(220,17,40);
+    background-color: hsl(220, 7%, 16%);
     border: 1px solid black;
     border-radius: 3px;
     margin: 2px 0;
@@ -109,7 +109,7 @@ QSlider::groove:horizontal
 QSlider::sub-page:horizontal
 {
     height: 5px;
-    background-color: hsl(220,17,80);
+    background-color: hsl(222, 6%, 31%);
     border: 1px solid black;
     border-radius: 4px;
     margin: 2px 0;
@@ -117,7 +117,7 @@ QSlider::sub-page:horizontal
 
 QSlider::handle:horizontal
 {
-    background: hsl(0,0,150);
+    background: hsl(0, 0%, 59%);
     width: 13px;
     margin: -4px 0;
     border-radius: 6px;
@@ -127,11 +127,11 @@ QSlider::handle:horizontal
 
 Colorwheel
 {
-    background-color: hsl(220,55,12);
+    background-color: hsl(220, 25%, 5%);
 }
 
 Editor
 {
-    background-color: hsl(220,12,16);
-    border: 1 solid hsl(216,7,100);
+    background-color: hsl(220,12%,16%);
+    border: 1 solid hsl(216,7%,100%);
 }

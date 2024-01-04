@@ -4,6 +4,7 @@
 
 #include "colorpicker.h"
 #include "picker.h"
+#include "grid.h"
 #include "editor.h"
 #include "eventfilter.h"
 #include "lcms2.h"
@@ -46,6 +47,10 @@ class ColorpickerPrivate : public QObject
         {
             H, S, V
         };
+        enum HslChannel
+        {
+            HslH, HslS, HslL
+        };
         enum Format
         {
             Int8bit,
@@ -61,6 +66,7 @@ class ColorpickerPrivate : public QObject
         void update();
         void view();
         void widget();
+        void blank();
         void activate();
         void deactivate();
         bool eventFilter(QObject* object, QEvent* event);
@@ -73,8 +79,11 @@ class ColorpickerPrivate : public QObject
         void pick();
         void closed();
         void togglePick();
+        void toggleGrid();
         void copyRGB();
         void copyHSV();
+        void copyHSL();
+        void copyHEX();
         void copyIccProfile();
         void copyColor();
         void as8bit();
@@ -168,8 +177,10 @@ class ColorpickerPrivate : public QObject
         };
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
+        float channelHsl(QColor color, HslChannel channel);
         QString formatRgb(QColor color, RgbChannel channel);
         QString formatHsv(QColor color, HsvChannel channel);
+        QString formatHsl(QColor color, HslChannel channel);
         QString asFloat(float channel);
         QString asHex(int channel);
         QString asPercentage(float channel);
@@ -195,6 +206,7 @@ class ColorpickerPrivate : public QObject
         QList<State> states;
         QPointer<Colorpicker> window;
         QScopedPointer<Picker> picker;
+        QScopedPointer<Grid> grid;
         QScopedPointer<Editor> editor;
         QScopedPointer<Eventfilter> displayfilter;
         QScopedPointer<Eventfilter> colorsfilter;
@@ -225,6 +237,7 @@ ColorpickerPrivate::init()
     window->setFixedSize(window->size());
     // utils
     picker.reset(new Picker());
+    grid.reset(new Grid());
     editor.reset(new Editor());
     // resources
     QDir resources(QApplication::applicationDirPath() + "/../Resources");
@@ -261,8 +274,11 @@ ColorpickerPrivate::init()
     connect(ui->v, SIGNAL(triggered()), this, SLOT(toggleV()));
     connect(ui->pick, SIGNAL(triggered()), this, SLOT(togglePick()));
     connect(ui->togglePick, SIGNAL(pressed()), this, SLOT(togglePick()));
+    connect(ui->toggleGrid, SIGNAL(pressed()), this, SLOT(toggleGrid()));
     connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
+    connect(ui->copyHSLAsText, SIGNAL(triggered()), this, SLOT(copyHSL()));
+    connect(ui->copyHexAsText, SIGNAL(triggered()), this, SLOT(copyHEX()));
     connect(ui->copyIccAsText, SIGNAL(triggered()), this, SLOT(copyIccProfile()));
     connect(ui->copyColorAsBitmap, SIGNAL(triggered()), this, SLOT(copyColor()));
     connect(ui->active, SIGNAL(toggled(bool)), this, SLOT(toggleActive(bool)));
@@ -417,7 +433,7 @@ ColorpickerPrivate::update()
         color = QColor::fromRgb(lcms2::convertColor(color.rgb(), iccProfile, iccConvertProfile));
         iccProfile = iccConvertProfile;
     }
-    // state
+    // current state
     {
         state = State{
           color,
@@ -510,12 +526,13 @@ ColorpickerPrivate::widget()
         QList<QPair<QColor,QString>> colors = asColors();
         if (active)
         {
-            // push back current state as active color
             colors.push_back(QPair<QColor,QString>(state.color, QFileInfo(state.iccProfile).baseName()));
+            // push current state, use as selected
             ui->colorWheel->setColors(colors, true);
         }
         else
         {
+            // restore colors, skip selected
             ui->colorWheel->setColors(colors, false);
         }
     }
@@ -531,6 +548,48 @@ ColorpickerPrivate::widget()
         picker->setColor(state.color);
         picker->update(cursor);
     }
+    // grid
+    if (grid->isVisible())
+    {
+        // threshold for border color contrast
+        if (state.color.valueF() < 0.2f) {
+            grid->setBorderColor(Qt::white);
+        } else {
+            grid->setBorderColor(Qt::black);
+        }
+        grid->update(cursor);
+    }
+}
+
+void
+ColorpickerPrivate::blank()
+{
+    qreal dpr = window->devicePixelRatio();
+    const QBrush blackBrush = QBrush(Qt::black);
+    // pixmap
+    QPixmap pixmap(width * dpr, height * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    {
+        QPainter p(&pixmap);
+        p.fillRect(QRect(0, 0, width, height), blackBrush);
+        p.end();
+    }
+    ui->view->setPixmap(pixmap);
+    QColor color = Qt::black;
+    // rgb
+    {
+        ui->r->setText(QString("%1").arg(formatRgb(color, RgbChannel::R)));
+        ui->g->setText(QString("%1").arg(formatRgb(color, RgbChannel::G)));
+        ui->b->setText(QString("%1").arg(formatRgb(color, RgbChannel::B)));
+    }
+    // hsv
+    {
+        ui->h->setText(QString("%1").arg(formatHsv(color, HsvChannel::H)));
+        ui->s->setText(QString("%1").arg(formatHsv(color, HsvChannel::S)));
+        ui->v->setText(QString("%1").arg(formatHsv(color, HsvChannel::V)));
+    }
+    ui->mouseLocation->setText(QString("(%1, %2)").arg(0).arg(0));
+    ui->colorWheel->setColors(asColors());
 }
 
 void
@@ -554,11 +613,15 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
         view();
         widget();
     }
-    if (event->type() == QEvent::KeyPress)
+    if (event->type() ==
+        QEvent::KeyPress)
     {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
         if (keyEvent->key() == Qt::Key_Escape) {
-            deactivate();
+            if (active)
+            {
+                deactivate();
+            }
         }
         else if (keyEvent->key() == Qt::Key_Plus) {
             QSlider* slider = ui->aperture;
@@ -597,7 +660,7 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                     if (selected >= 0) {
                         
                         colorWheel->setSelected(selected);
-                        state = states[selected];
+                        state = states[selected]; // restore state
                         view();
                         widget();
                     }
@@ -646,7 +709,6 @@ ColorpickerPrivate::blocked()
 void
 ColorpickerPrivate::toggleActive(bool checked)
 {
-    ui->colorWheel->setColors(asColors());
     if (checked) {
         emit readOnly(true);
     } else {
@@ -656,8 +718,22 @@ ColorpickerPrivate::toggleActive(bool checked)
             emit readOnly(true);
         }
     }
+    
     active = checked;
+    
+    if (selected >= 0) {
 
+        ui->colorWheel->setSelected(selected);
+        state = states[selected]; // restore state
+        view();
+        widget();
+    }
+    else
+    {
+        states.clear();
+        selected = -1;
+        blank();
+    }
 }
 
 void
@@ -723,6 +799,26 @@ ColorpickerPrivate::togglePick()
 }
 
 void
+ColorpickerPrivate::toggleGrid()
+{
+    if (grid->isVisible())
+    {
+        deactivate();
+        {
+            grid->hide();
+        }
+    }
+    else
+    {
+        activate();
+        {
+            grid->update(cursor);
+            grid->show();
+        }
+    }
+}
+
+void
 ColorpickerPrivate::copyRGB()
 {
     QClipboard* clipboard = QGuiApplication::clipboard();
@@ -742,8 +838,28 @@ ColorpickerPrivate::copyHSV()
         QString("%1").arg(formatHsv(state.color, HsvChannel::H)) +
         ", " +
         QString("%1").arg(formatHsv(state.color, HsvChannel::S)) +
+        "%, " +
+        QString("%1").arg(formatHsv(state.color, HsvChannel::V)) +
+        "%");
+}
+
+void
+ColorpickerPrivate::copyHSL()
+{
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setText(
+        QString("%1").arg(formatHsl(state.color, HslChannel::HslH)) +
         ", " +
-        QString("%1").arg(formatHsv(state.color, HsvChannel::V)));
+        QString("%1").arg(formatHsl(state.color, HslChannel::HslS)) +
+        ", " +
+        QString("%1").arg(formatHsl(state.color, HslChannel::HslL)));
+}
+
+void
+ColorpickerPrivate::copyHEX()
+{
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setText(state.color.name());
 }
 
 void
@@ -851,6 +967,7 @@ ColorpickerPrivate::iccConvertProfileChanged(int index)
 void
 ColorpickerPrivate::toggleColors()
 {
+
     int height = ui->colorsWidget->height();
     if (ui->toggleColors->isChecked()) {
         ui->toggleColors->setIcon(QIcon(":/icons/resources/Collapse.png"));
@@ -1101,6 +1218,7 @@ void
 ColorpickerPrivate::clear()
 {
     states.clear();
+    selected = -1;
     ui->colorWheel->setColors(asColors());
     activate();
     update();
@@ -1376,7 +1494,29 @@ ColorpickerPrivate::channelHsv(QColor color, HsvChannel channel)
         break;
     }
 }
-
+                       
+float
+ColorpickerPrivate::channelHsl(QColor color, HslChannel channel)
+{
+   switch (channel)
+   {
+       case HslChannel::HslH:
+       {
+           return qMax<float>(0, color.hslHueF());
+       }
+       break;
+       case HslChannel::HslS:
+       {
+           return color.hslSaturationF();
+       }
+       break;
+       case HslChannel::HslL:
+       {
+           return color.lightnessF();
+       }
+       break;
+   }
+}
 
 QString
 ColorpickerPrivate::formatRgb(QColor color, RgbChannel channel)
@@ -1425,6 +1565,19 @@ ColorpickerPrivate::formatHsv(QColor hsv, HsvChannel channel)
     {
         return QString("%1%").arg(asPercentage(channelHsv(hsv, channel)));
     }
+}
+                       
+QString
+ColorpickerPrivate::formatHsl(QColor hsl, HslChannel channel)
+{
+   if (channel == HslChannel::HslH)
+   {
+       return QString("%1°").arg(asDegree(channelHsl(hsl, channel) * 360));
+   }
+   else
+   {
+       return QString("%1%").arg(asPercentage(channelHsl(hsl, channel)));
+   }
 }
 
 QString

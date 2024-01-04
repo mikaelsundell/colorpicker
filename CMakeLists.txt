@@ -31,6 +31,8 @@ set (app_sources
     editor.cpp
     eventfilter.h
     eventfilter.cpp
+    grid.h
+    grid.cpp
     label.h
     label.cpp
     lcms2.cpp
