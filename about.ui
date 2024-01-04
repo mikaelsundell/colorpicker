@@ -161,6 +161,21 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="version">
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Version</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="copyright">
        <property name="font">
         <font>

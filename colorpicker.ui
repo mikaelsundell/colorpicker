@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>450</width>
-    <height>900</height>
+    <width>400</width>
+    <height>850</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -86,7 +86,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_3">
+          <widget class="QLabel" name="label">
            <property name="text">
             <string>Display</string>
            </property>
@@ -731,7 +731,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_3">
+          <widget class="QLabel" name="label">
            <property name="text">
             <string>Colors</string>
            </property>
@@ -1201,7 +1201,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>450</width>
+     <width>400</width>
      <height>24</height>
     </rect>
    </property>

@@ -125,6 +125,7 @@ class ColorpickerPrivate : public QObject
                 QScopedPointer<Ui_About> about;
                 about.reset(new Ui_About());
                 about->setupUi(this);
+                about->version->setText(MACOSX_BUNDLE_LONG_VERSION_STRING);
                 about->copyright->setText(MACOSX_BUNDLE_COPYRIGHT);
                 QString url = GITHUBURL;
                 about->github->setText(QString("Github project: <a href='%1'>%1</a>").arg(url));
@@ -443,8 +444,7 @@ ColorpickerPrivate::view()
     QPixmap buffer;
     // icc profile
     {
-        QString iccProfile;
-        if (iccProfile != iccDisplayProfile)
+        if (state.iccProfile != iccDisplayProfile)
         {
             color = lcms2::convertColor(state.color.rgb(), state.iccProfile, iccDisplayProfile);
             buffer = lcms2::convertPixmap(state.buffer, state.iccProfile, iccDisplayProfile);
