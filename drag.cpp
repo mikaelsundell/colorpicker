@@ -48,7 +48,7 @@ class DragPrivate : public QObject
 };
 
 DragPrivate::DragPrivate()
-: borderColor(Qt::black)
+: borderColor(Qt::white)
 , offset(QPoint(0.0, 0.0))
 , baseSize(256, 256)
 , baseRect(0, 0, 256, 256)
@@ -141,8 +141,8 @@ DragPrivate::paintCross()
     QSize size = mapToSize();
     // buffer
     buffer = QPixmap(size * dpr);
-    //buffer.fill(Qt::transparent);
-    buffer.fill(Qt::gray);
+    buffer.fill(Qt::transparent);
+    //buffer.fill(Qt::gray);
     
     buffer.setDevicePixelRatio(dpr);
     // painter
@@ -154,9 +154,9 @@ DragPrivate::paintCross()
     // cross
     p.translate(center.x(), center.y());
     {
-        qreal length = qMax(radius * 0.2, 0.0);
-        qreal origin = length * 0.2;
-        p.setPen(QPen(brush, 1));
+        qreal length = qMax(radius * 0.1, 0.0);
+        qreal origin = length * 0.4;
+        p.setPen(QPen(brush, 2));
         p.drawLine(origin, 0, length, 0);
         p.drawLine(-length, 0, -origin, 0);
         p.drawLine(0, length, 0, origin);
@@ -176,9 +176,7 @@ DragPrivate::paintDrag()
     
     // buffer
     buffer = QPixmap(size * dpr);
-    
-    //buffer.fill(Qt::transparent);
-    buffer.fill(Qt::darkBlue);
+    buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
     
     // cross
@@ -191,9 +189,12 @@ DragPrivate::paintDrag()
         {
             p.save();
             QRect rectangle(from, to);
-            QBrush brush = QBrush(borderColor);
-            
-            p.setBrush(QBrush(Qt::darkRed));
+            QColor fillColor = Qt::gray;
+            fillColor.setAlphaF(0.2);
+            QBrush brush(fillColor);
+            p.setBrush(brush);
+            QPen pen(Qt::white, 1);
+            p.setPen(pen);
             p.drawRect(rectangle);
             p.restore();
         }
@@ -206,9 +207,9 @@ DragPrivate::paintDrag()
             QBrush brush = QBrush(borderColor);
             p.translate(from.x(), from.y());
             {
-                qreal length = qMax(radius * 0.2, 0.0);
-                qreal origin = length * 0.2;
-                p.setPen(QPen(brush, 1));
+                qreal length = qMax(radius * 0.1, 0.0);
+                qreal origin = length * 0.4;
+                p.setPen(QPen(brush, 2));
                 p.drawLine(origin, 0, length, 0);
                 p.drawLine(-length, 0, -origin, 0);
                 p.drawLine(0, length, 0, origin);
@@ -224,9 +225,9 @@ DragPrivate::paintDrag()
             QBrush brush = QBrush(borderColor);
             p.translate(to.x(), to.y());
             {
-                qreal length = qMax(radius * 0.2, 0.0);
-                qreal origin = length * 0.2;
-                p.setPen(QPen(brush, 1));
+                qreal length = qMax(radius * 0.1, 0.0);
+                qreal origin = length * 0.4;
+                p.setPen(QPen(brush, 2));
                 p.drawLine(origin, 0, length, 0);
                 p.drawLine(-length, 0, -origin, 0);
                 p.drawLine(0, length, 0, origin);
@@ -365,7 +366,7 @@ void
 Drag::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::transparent);
+    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor
     if (!p->state.dragging) {
         painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     } else {

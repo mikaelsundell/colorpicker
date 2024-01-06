@@ -187,6 +187,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
             widget->hide();
             widget->closed();
         }
+        return true;
     }
     return false;
 }
@@ -224,7 +225,7 @@ void
 Picker::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::transparent);
+    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor
     painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     painter.end();
 }

@@ -793,6 +793,13 @@ ColorpickerPrivate::togglePick()
     {
         activate();
         {
+            
+            // threshold for border color contrast
+            if (state.color.valueF() < 0.2f) {
+                picker->setBorderColor(Qt::white);
+            } else {
+                picker->setBorderColor(Qt::black);
+            }
             picker->setColor(state.color);
             picker->update(cursor);
             picker->show();
@@ -969,7 +976,6 @@ ColorpickerPrivate::iccConvertProfileChanged(int index)
 void
 ColorpickerPrivate::toggleColors()
 {
-
     int height = ui->colorsWidget->height();
     if (ui->toggleColors->isChecked()) {
         ui->toggleColors->setIcon(QIcon(":/icons/resources/Collapse.png"));
