@@ -5,13 +5,13 @@
 #pragma once
 #include <QWidget>
 
-class GridPrivate;
-class Grid : public QWidget
+class DragPrivate;
+class Drag : public QWidget
 {
     Q_OBJECT
     public:
-        Grid();
-        virtual ~Grid();
+        Drag();
+        virtual ~Drag();
         QColor borderColor();
         void paintEvent(QPaintEvent* event) override;
 
@@ -24,5 +24,5 @@ class Grid : public QWidget
         void closed();
     
     private:
-        QScopedPointer<GridPrivate> p;
+        QScopedPointer<DragPrivate> p;
 };

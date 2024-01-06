@@ -4,7 +4,7 @@
 
 #include "colorpicker.h"
 #include "picker.h"
-#include "grid.h"
+#include "drag.h"
 #include "editor.h"
 #include "eventfilter.h"
 #include "lcms2.h"
@@ -79,7 +79,7 @@ class ColorpickerPrivate : public QObject
         void pick();
         void closed();
         void togglePick();
-        void toggleGrid();
+        void toggleDrag();
         void copyRGB();
         void copyHSV();
         void copyHSL();
@@ -206,7 +206,7 @@ class ColorpickerPrivate : public QObject
         QList<State> states;
         QPointer<Colorpicker> window;
         QScopedPointer<Picker> picker;
-        QScopedPointer<Grid> grid;
+        QScopedPointer<Drag> drag;
         QScopedPointer<Editor> editor;
         QScopedPointer<Eventfilter> displayfilter;
         QScopedPointer<Eventfilter> colorsfilter;
@@ -237,7 +237,7 @@ ColorpickerPrivate::init()
     window->setFixedSize(window->size());
     // utils
     picker.reset(new Picker());
-    grid.reset(new Grid());
+    drag.reset(new Drag());
     editor.reset(new Editor());
     // resources
     QDir resources(QApplication::applicationDirPath() + "/../Resources");
@@ -274,7 +274,8 @@ ColorpickerPrivate::init()
     connect(ui->v, SIGNAL(triggered()), this, SLOT(toggleV()));
     connect(ui->pick, SIGNAL(triggered()), this, SLOT(togglePick()));
     connect(ui->togglePick, SIGNAL(pressed()), this, SLOT(togglePick()));
-    connect(ui->toggleGrid, SIGNAL(pressed()), this, SLOT(toggleGrid()));
+    connect(ui->drag, SIGNAL(triggered()), this, SLOT(toggleDrag()));
+    connect(ui->toggleDrag, SIGNAL(pressed()), this, SLOT(toggleDrag()));
     connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyHSLAsText, SIGNAL(triggered()), this, SLOT(copyHSL()));
@@ -314,7 +315,8 @@ ColorpickerPrivate::init()
     connect(ui->zoom, SIGNAL(stateChanged(int)), this, SLOT(zoomChanged(int)));
     connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
     connect(ui->labels, SIGNAL(stateChanged(int)), this, SLOT(labelsChanged(int)));
-    connect(ui->clear, SIGNAL(pressed()), this, SLOT(clear()));
+    connect(ui->clear, SIGNAL(triggered()), this, SLOT(clear()));
+    connect(ui->toggleClear, SIGNAL(pressed()), this, SLOT(clear()));
     connect(ui->pdf, SIGNAL(pressed()), this, SLOT(pdf()));
     connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
@@ -549,15 +551,15 @@ ColorpickerPrivate::widget()
         picker->update(cursor);
     }
     // grid
-    if (grid->isVisible())
+    if (drag->isVisible())
     {
         // threshold for border color contrast
         if (state.color.valueF() < 0.2f) {
-            grid->setBorderColor(Qt::white);
+            drag->setBorderColor(Qt::white);
         } else {
-            grid->setBorderColor(Qt::black);
+            drag->setBorderColor(Qt::black);
         }
-        grid->update(cursor);
+        drag->update(cursor);
     }
 }
 
@@ -799,21 +801,21 @@ ColorpickerPrivate::togglePick()
 }
 
 void
-ColorpickerPrivate::toggleGrid()
+ColorpickerPrivate::toggleDrag()
 {
-    if (grid->isVisible())
+    if (drag->isVisible())
     {
         deactivate();
         {
-            grid->hide();
+            drag->hide();
         }
     }
     else
     {
         activate();
         {
-            grid->update(cursor);
-            grid->show();
+            drag->update(cursor);
+            drag->show();
         }
     }
 }

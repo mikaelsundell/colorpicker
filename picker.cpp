@@ -18,7 +18,6 @@ class PickerPrivate : public QObject
         PickerPrivate();
         void init();
         void mapToGeometry();
-        int mapToScale(int value) const;
         QSize mapToSize() const;
         bool eventFilter(QObject* object, QEvent* event);
     
@@ -106,12 +105,6 @@ PickerPrivate::mapToGeometry()
     widget->QWidget::update();
 }
 
-int
-PickerPrivate::mapToScale(int value) const
-{
-    return static_cast<int>(mapToSize().height() * scale);
-}
-
 QSize
 PickerPrivate::mapToSize() const
 {
@@ -167,16 +160,17 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         {
             widget->hide();
             widget->closed();
+            return true;
         }
         else if (keyEvent->key() == Qt::Key_Plus)
         {
-            factor = qMin(factor + 0.1, 0.8);
+            factor = qMin(factor + 0.2, 1.0);
             paintPicker();
             mapToGeometry(); // needed to update mask
         }
         else if (keyEvent->key() == Qt::Key_Minus)
         {
-            factor = qMax(factor - 0.1, 0.4);
+            factor = qMax(factor - 0.2, 0.2);
             paintPicker();
             mapToGeometry(); // needed to update mask
         }
@@ -194,6 +188,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
             widget->closed();
         }
     }
+    return false;
 }
 
 #include "picker.moc"
@@ -230,23 +225,26 @@ Picker::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
     painter.fillRect(rect(), Qt::transparent);
-    painter.translate(p->offset.x(), p->offset.y());
-    painter.drawPixmap(0, 0, p->buffer);
+    painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     painter.end();
 }
 
 void
 Picker::setBorderColor(const QColor& color)
 {
-    p->borderColor = color;
-    p->paintPicker();
+    if (p->borderColor != color) {
+        p->borderColor = color;
+        p->paintPicker();
+    }
 }
 
 void
 Picker::setColor(const QColor& color)
 {
-    p->color = color;
-    p->paintPicker();
+    if (p->color != color) {
+        p->color = color;
+        p->paintPicker();
+    }
 }
 
 void

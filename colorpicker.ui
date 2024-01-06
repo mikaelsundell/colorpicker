@@ -944,7 +944,7 @@
                </spacer>
               </item>
               <item>
-               <widget class="QToolButton" name="clear">
+               <widget class="QToolButton" name="toggleClear">
                 <property name="toolTip">
                  <string>Clear colors</string>
                 </property>
@@ -980,9 +980,9 @@
                </spacer>
               </item>
               <item>
-               <widget class="QToolButton" name="toggleGrid">
+               <widget class="QToolButton" name="toggleDrag">
                 <property name="toolTip">
-                 <string>Pick colors from grid</string>
+                 <string>Capture from drag</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1012,7 +1012,7 @@
               <item>
                <widget class="QToolButton" name="togglePick">
                 <property name="toolTip">
-                 <string>Pick color from mouse position</string>
+                 <string>Capture from pick</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1232,7 +1232,7 @@
      <x>0</x>
      <y>0</y>
      <width>430</width>
-     <height>37</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="viewMenu">
@@ -1274,7 +1274,8 @@
      <string>Edit</string>
     </property>
     <addaction name="pick"/>
-    <addaction name="actionClear"/>
+    <addaction name="drag"/>
+    <addaction name="clear"/>
     <addaction name="separator"/>
     <addaction name="copyRGBAsText"/>
     <addaction name="copyHSVAsText"/>
@@ -1514,7 +1515,7 @@
   </action>
   <action name="pick">
    <property name="text">
-    <string>Pick</string>
+    <string>Capture from pick</string>
    </property>
    <property name="shortcut">
     <string>Return</string>
@@ -1538,7 +1539,7 @@
     <string>P</string>
    </property>
   </action>
-  <action name="actionClear">
+  <action name="clear">
    <property name="text">
     <string>Clear</string>
    </property>
@@ -1551,6 +1552,14 @@
   <action name="copyHexAsText">
    <property name="text">
     <string>Copy HEX as text</string>
+   </property>
+  </action>
+  <action name="drag">
+   <property name="text">
+    <string>Capture from drag</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+Return</string>
    </property>
   </action>
  </widget>
