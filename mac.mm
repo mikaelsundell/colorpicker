@@ -140,7 +140,7 @@ namespace mac
         NSView *view = reinterpret_cast<NSView *>(wid);
         NSWindow *window = [view window];
         // force window to be at status window level
-        [window setLevel:NSStatusWind wLevel];
+        [window setLevel:NSStatusWindowLevel];
     }
 
     QPixmap grabDisplayPixmap(int x, int y, int width, int height)
