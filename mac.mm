@@ -139,8 +139,8 @@ namespace mac
     {
         NSView *view = reinterpret_cast<NSView *>(wid);
         NSWindow *window = [view window];
-        // force window to be at main menu window level for overlays
-        [window setLevel:NSMainMenuWindowLevel];
+        // force window to be at status window level
+        [window setLevel:NSStatusWind wLevel];
     }
 
     QPixmap grabDisplayPixmap(int x, int y, int width, int height)
