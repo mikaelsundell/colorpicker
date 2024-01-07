@@ -195,6 +195,7 @@ class ColorpickerPrivate : public QObject
         QString iccProfile;
         QString iccConvertProfile;
         QString iccDisplayProfile;
+        QMap<WId, QString> iccProfiles;
         QPoint cursor;
         bool active;
         bool mouselocation;
@@ -204,6 +205,7 @@ class ColorpickerPrivate : public QObject
         int selected;
         QSize size;
         QList<State> states;
+
         QPointer<Colorpicker> window;
         QScopedPointer<Picker> picker;
         QScopedPointer<Drag> drag;
@@ -428,7 +430,12 @@ ColorpickerPrivate::update()
     // icc profile
     if (iccDisplayProfile.isEmpty())
     {
-        iccDisplayProfile = mac::grabIccProfile(window->winId());
+        WId windowId = window->winId();
+        if (!iccProfiles.contains(windowId)) {
+            QString profile = mac::grabIccProfile(windowId);
+            iccProfiles.insert(windowId, profile);
+        }
+        iccDisplayProfile = iccProfiles.value(windowId);
     }
     if (iccConvertProfile.length())
     {

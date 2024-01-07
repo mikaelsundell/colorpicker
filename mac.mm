@@ -265,7 +265,9 @@ namespace mac
                 images.append(QImage());
                 continue;
             }
-            QImage displayImage = convertImageToQImage(CGWindowListCreateImageFromArray(grabBounds.toCGRect(), grabWindows, kCGWindowListOptionAll));
+            CGImageRef cgImage = CGWindowListCreateImageFromArray(grabBounds.toCGRect(), grabWindows, kCGWindowListOptionAll);
+            QImage displayImage = convertImageToQImage(cgImage);
+            CGImageRelease(cgImage); // Release the CGImageRef
             displayImage.setDevicePixelRatio(displayImage.size().width() / grabBounds.size().width());
             images.append(displayImage);
             QRect destBounds = QRect(QPoint(grabBounds.topLeft() - grabRect.topLeft()), grabBounds.size());
