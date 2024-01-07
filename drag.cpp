@@ -5,7 +5,7 @@
 #include "drag.h"
 #include "mac.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
@@ -72,7 +72,6 @@ DragPrivate::mapToGeometry()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     QSize size = mapToSize();
-    
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
     int width = baseRect.width();
@@ -117,11 +116,12 @@ DragPrivate::mapToGeometry()
         QRect rect = baseRect.united(state.rect);
         widget->setGeometry(rect);
         widget->setFixedSize(rect.size());
-        paintGrid();
+        widget->QWidget::update();
+        paintGrid(); // force repaint, rectangle changed
     } else {
         widget->setGeometry(x, y, width, height);
         widget->setFixedSize(width, height);
-        widget->QWidget::update();
+        widget->QWidget::update(); // no repaint needed, single cross
     }
 }
 
@@ -142,8 +142,6 @@ DragPrivate::paintCross()
     // buffer
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
-    //buffer.fill(Qt::gray);
-    
     buffer.setDevicePixelRatio(dpr);
     // painter
     QPainter p(&buffer);
@@ -184,7 +182,7 @@ DragPrivate::paintDrag()
     {
         QPoint from = widget->mapFromGlobal(state.position);
         QPoint to = widget->mapFromGlobal(position);
-        
+
         // fill
         {
             p.save();
@@ -282,9 +280,6 @@ DragPrivate::eventFilter(QObject* object, QEvent* event)
     {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
-            
-            qDebug() << "Start drag @ position: " << position;
-            
             activate();
         }
         
@@ -299,11 +294,7 @@ DragPrivate::eventFilter(QObject* object, QEvent* event)
     {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
-            
-            qDebug() << "Release drag @ position: " << position;
-            
             deactivate();
-            
         }
         
         if (mouseEvent->button() == Qt::RightButton) {
@@ -343,7 +334,7 @@ DragPrivate::deactivate()
 
 Drag::Drag()
 : QWidget(nullptr,
-  Qt::Window |
+  Qt::Dialog |
   Qt::FramelessWindowHint)
 , p(new DragPrivate())
 {
@@ -354,12 +345,6 @@ Drag::Drag()
 
 Drag::~Drag()
 {
-}
-
-QColor
-Drag::borderColor()
-{
-    return p->borderColor;
 }
 
 void
@@ -373,15 +358,6 @@ Drag::paintEvent(QPaintEvent* event)
         painter.drawPixmap(0, 0, p->buffer);
     }
     painter.end();
-}
-
-void
-Drag::setBorderColor(const QColor& color)
-{
-    if (p->borderColor != color) {
-        //p->borderColor = color;
-        //p->paintGrid();
-    }
 }
 
 void

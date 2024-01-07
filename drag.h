@@ -12,11 +12,9 @@ class Drag : public QWidget
     public:
         Drag();
         virtual ~Drag();
-        QColor borderColor();
         void paintEvent(QPaintEvent* event) override;
 
     public Q_SLOTS:
-        void setBorderColor(const QColor& color);
         void update(const QPoint& position);
     
     Q_SIGNALS:

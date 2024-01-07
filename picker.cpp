@@ -5,7 +5,7 @@
 #include "picker.h"
 #include "mac.h"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
@@ -153,6 +153,7 @@ PickerPrivate::paintPicker()
 bool
 PickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
+    //qDebug() << "event: " << event;
     if (event->type() == QEvent::KeyPress)
     {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
@@ -196,7 +197,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
 
 Picker::Picker()
 : QWidget(nullptr,
-  Qt::Window |
+  Qt::Dialog |
   Qt::FramelessWindowHint)
 , p(new PickerPrivate())
 {

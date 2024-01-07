@@ -273,9 +273,9 @@ ColorpickerPrivate::init()
     connect(ui->s, SIGNAL(triggered()), this, SLOT(toggleS()));
     connect(ui->v, SIGNAL(triggered()), this, SLOT(toggleV()));
     connect(ui->pick, SIGNAL(triggered()), this, SLOT(togglePick()));
-    connect(ui->togglePick, SIGNAL(pressed()), this, SLOT(togglePick()));
+    connect(ui->togglePick, SIGNAL(released()), this, SLOT(togglePick())); // need to be released for cursor update
     connect(ui->drag, SIGNAL(triggered()), this, SLOT(toggleDrag()));
-    connect(ui->toggleDrag, SIGNAL(pressed()), this, SLOT(toggleDrag()));
+    connect(ui->toggleDrag, SIGNAL(released()), this, SLOT(toggleDrag())); // need to be released for cursor update
     connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
     connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
     connect(ui->copyHSLAsText, SIGNAL(triggered()), this, SLOT(copyHSL()));
@@ -553,12 +553,6 @@ ColorpickerPrivate::widget()
     // grid
     if (drag->isVisible())
     {
-        // threshold for border color contrast
-        if (state.color.valueF() < 0.2f) {
-            drag->setBorderColor(Qt::white);
-        } else {
-            drag->setBorderColor(Qt::black);
-        }
         drag->update(cursor);
     }
 }
@@ -793,7 +787,6 @@ ColorpickerPrivate::togglePick()
     {
         activate();
         {
-            
             // threshold for border color contrast
             if (state.color.valueF() < 0.2f) {
                 picker->setBorderColor(Qt::white);
