@@ -14,9 +14,10 @@ class Editor : public QDialog
         virtual ~Editor();
         int maximum() const;
         int minimum() const;
+        int value() const;
         void setMaximum(int maximum);
         void setMinimum(int minimum);
-        int value() const;
+        
     
     public Q_SLOTS:
         void setValue(int value);

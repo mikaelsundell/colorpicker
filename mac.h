@@ -3,15 +3,20 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #pragma once
-#include "colorpicker.h"
-
 #include <QWidget>
 
 namespace mac
 {
-    void setupMac();
-    void setupOverlay(WId wid);
-    QPixmap grabDisplayPixmap(int x, int y, int width, int height);
-    QPixmap grabDisplayPixmap(int x, int y, int width, int height, WId excludeWid);
-    QString grabIccProfile(WId wid);
+    struct IccProfile {
+        int screenNumber;
+        QString displayProfileUrl;
+    };
+    void setDarkAppearance();
+    void setTopLevel(WId wid);
+    QImage grabImage(int x, int y, int width, int height, WId windowId);
+    IccProfile grabIccProfile(int x, int y);
+    IccProfile grabIccProfile(WId wid);
+    QString grabIccProfileUrl(WId wid);
+    QPoint fromNativeCursor(float x, float y);
+    QPointF toNativeCursor(int x, int y);
 }

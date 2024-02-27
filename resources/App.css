@@ -8,14 +8,20 @@
 QMainWindow,
 QDialog
 {
-    background-color: hsl(220,55%,4%);
+    background-color: hsl(220, 30%, 6%);
+}
+
+QDialog
+{
+    background-color: hsl(220, 30%, 12%);
+    border: 1 solid hsl(216, 7%, 100%);
 }
 
 /* QWidgets widgets */
 
 QWidget#displayBar
 {
-    background-color: hsl(214, 24%, 6%);
+    background-color: hsl(220, 30%, 12%);
     border-radius: 5px;
     border-bottom-left-radius: 0px;
     border-bottom-right-radius: 0px;
@@ -23,7 +29,7 @@ QWidget#displayBar
 
 QWidget#displayWidget
 {
-    background-color: hsl(220, 25%, 5%);
+    background-color: hsl(220, 30%, 8%);
     border-radius: 5px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
@@ -31,7 +37,7 @@ QWidget#displayWidget
 
 QWidget#colorsBar
 {
-    background-color: hsl(214, 24%, 6%);
+    background-color: hsl(220, 30%, 12%);
     border-radius: 5px;
     border-bottom-left-radius: 0px;
     border-bottom-right-radius: 0px;
@@ -39,15 +45,20 @@ QWidget#colorsBar
 
 QWidget#colorsWidget
 {
-    background-color: hsl(220, 25%, 5%);
+    background-color: hsl(220, 30%, 8%);
     border-radius: 5px;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
 }
 
+QWidget#colorWheel
+{
+    background-color: hsl(220, 30%, 6%);
+}
+
 QWidget#mouseLocation
 {
-    background-color: hsl(0,0%,0%);
+    background-color: hsl(0, 0%, 0%);
 }
 
 QWidget:checked#toggleActive
@@ -100,7 +111,7 @@ QToolButton#toggleColors
 QSlider::groove:horizontal
 {
     height: 5px;
-    background-color: hsl(220, 7%, 16%);
+    background-color: hsl(220, 8%, 15%);
     border: 1px solid black;
     border-radius: 3px;
     margin: 2px 0;
@@ -109,7 +120,7 @@ QSlider::groove:horizontal
 QSlider::sub-page:horizontal
 {
     height: 5px;
-    background-color: hsl(222, 6%, 31%);
+    background-color: hsl(222, 6%, 30%);
     border: 1px solid black;
     border-radius: 4px;
     margin: 2px 0;
@@ -121,17 +132,4 @@ QSlider::handle:horizontal
     width: 13px;
     margin: -4px 0;
     border-radius: 6px;
-}
-
-/* Custom widgets */
-
-Colorwheel
-{
-    background-color: hsl(220, 25%, 5%);
-}
-
-Editor
-{
-    background-color: hsl(220,12%,16%);
-    border: 1 solid hsl(216,7%,100%);
 }

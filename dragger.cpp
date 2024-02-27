@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/mikaelsundell/colorpicker
 
-#include "drag.h"
+#include "dragger.h"
 #include "mac.h"
 
 #include <QApplication>
@@ -11,14 +11,15 @@
 #include <QPointer>
 #include <QtGlobal>
 
-class DragPrivate : public QObject
+class DraggerPrivate : public QObject
 {
     Q_OBJECT
     public:
-        DragPrivate();
+        DraggerPrivate();
         void init();
         void mapToGeometry();
         QSize mapToSize() const;
+        QRect dragRect() const;
         bool eventFilter(QObject* object, QEvent* event);
         void activate();
         void deactivate();
@@ -27,14 +28,14 @@ class DragPrivate : public QObject
         class State
         {
             public:
-                QPoint position;
-                QRect rect;
-                bool dragging;
+            QPoint position;
+            QRect rect;
+            QRect unitedRect;
+            bool dragging;
         };
         void paintCross();
         void paintDrag();
         void paintGrid();
-       
         QPixmap buffer;
         QColor borderColor;
         QPoint offset;
@@ -44,10 +45,10 @@ class DragPrivate : public QObject
         qreal factor;
         qreal scale;
         State state;
-        QPointer<Drag> widget;
+        QPointer<Dragger> widget;
 };
 
-DragPrivate::DragPrivate()
+DraggerPrivate::DraggerPrivate()
 : borderColor(Qt::white)
 , offset(QPoint(0.0, 0.0))
 , baseSize(256, 256)
@@ -58,19 +59,29 @@ DragPrivate::DragPrivate()
 }
 
 void
-DragPrivate::init()
+DraggerPrivate::init()
 {
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->resize(mapToSize());
     widget->setCursor(Qt::BlankCursor);
+    widget->setContextMenuPolicy(Qt::NoContextMenu);
     widget->installEventFilter(this);
-    mac::setupOverlay(widget->winId());
+    mac::setTopLevel(widget->winId());
+    deactivate(); // need to be initialized
 }
 
 void
-DragPrivate::mapToGeometry()
+DraggerPrivate::mapToGeometry()
 {
-    QScreen* screen = QGuiApplication::screenAt(position);
+    QScreen* screen;
+    if (state.dragging) {
+        screen = QGuiApplication::screenAt(state.position);
+        QRect clipGeometry = screen->geometry();
+        position.setX(qMax(clipGeometry.left(), qMin(position.x(), clipGeometry.right())));
+        position.setY(qMax(clipGeometry.top(), qMin(position.y(), clipGeometry.bottom())));
+    } else {
+        screen = QGuiApplication::screenAt(position);
+    }
     QSize size = mapToSize();
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
@@ -111,9 +122,9 @@ DragPrivate::mapToGeometry()
         offset.setY(0);
     }
     baseRect = QRect(x, y, width, height);
-    
     if (state.dragging) {
         QRect rect = baseRect.united(state.rect);
+        state.unitedRect = rect;
         widget->setGeometry(rect);
         widget->setFixedSize(rect.size());
         widget->QWidget::update();
@@ -125,15 +136,24 @@ DragPrivate::mapToGeometry()
     }
 }
 
-
 QSize
-DragPrivate::mapToSize() const
+DraggerPrivate::mapToSize() const
 {
     return baseSize * factor;
 }
 
+QRect
+DraggerPrivate::dragRect() const
+{
+    if (state.dragging) {
+        return QRect(state.position, position).normalized();
+    } else {
+        return QRect();
+    }
+}
+
 void
-DragPrivate::paintCross()
+DraggerPrivate::paintCross()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     qreal dpr = screen->devicePixelRatio();
@@ -143,6 +163,7 @@ DragPrivate::paintCross()
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
+
     // painter
     QPainter p(&buffer);
     qreal diameter = std::min(size.width(), size.height()) * scale;
@@ -164,25 +185,21 @@ DragPrivate::paintCross()
 }
 
 void
-DragPrivate::paintDrag()
+DraggerPrivate::paintDrag()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     qreal dpr = screen->devicePixelRatio();
-    
     // size
     QSize size = widget->rect().size(); // size is now widget size, no offsets
-    
     // buffer
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
-    
     // cross
     QPainter p(&buffer);
     {
         QPoint from = widget->mapFromGlobal(state.position);
         QPoint to = widget->mapFromGlobal(position);
-
         // fill
         {
             p.save();
@@ -237,9 +254,8 @@ DragPrivate::paintDrag()
     p.end();
 }
 
-
 void
-DragPrivate::paintGrid()
+DraggerPrivate::paintGrid()
 {
     if (state.dragging) {
         paintDrag();
@@ -249,69 +265,65 @@ DragPrivate::paintGrid()
 }
 
 bool
-DragPrivate::eventFilter(QObject* object, QEvent* event)
+DraggerPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (event->type() == QEvent::KeyPress)
-    {
+    if (event->type() == QEvent::Hide) {
+        widget->closed();
+    }
+    if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
-        if (keyEvent->key() == Qt::Key_Escape)
-        {
+        if (keyEvent->key() == Qt::Key_Escape) {
+            widget->releaseMouse();
             widget->hide();
-            widget->closed();
             deactivate();
-        
             return true;
         }
-        else if (keyEvent->key() == Qt::Key_Plus)
-        {
+        else if (keyEvent->key() == Qt::Key_Plus) {
             factor = qMin(factor + 0.1, 0.8);
             paintGrid();
             mapToGeometry(); // needed to update mask
         }
-        else if (keyEvent->key() == Qt::Key_Minus)
-        {
+        else if (keyEvent->key() == Qt::Key_Minus) {
             factor = qMax(factor - 0.1, 0.4);
             paintGrid();
             mapToGeometry(); // needed to update mask
         }
     }
     
-    if (event->type() == QEvent::QEvent::MouseButtonPress)
-    {
+    if (event->type() == QEvent::QEvent::MouseButtonPress) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
+            widget->grabMouse(); // needed for mouse move events
             activate();
         }
         
         if (mouseEvent->button() == Qt::RightButton) {
+            widget->releaseMouse();
             widget->hide();
-            widget->closed();
             deactivate();
         }
+        return true;
     }
     
-    if (event->type() == QEvent::QEvent::MouseButtonRelease)
-    {
+    if (event->type() == QEvent::QEvent::MouseButtonRelease) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
+            widget->releaseMouse();
+            widget->triggered();
             deactivate();
         }
-        
-        if (mouseEvent->button() == Qt::RightButton) {
-            widget->hide();
-            widget->closed();
-            deactivate();
-        }
+        return true;
     }
     return false;
 }
 
 void
-DragPrivate::activate()
+DraggerPrivate::activate()
 {
     state = State {
         position,
         widget->geometry(),
+        QRect(),
         true
     };
     paintGrid();
@@ -319,10 +331,11 @@ DragPrivate::activate()
 }
 
 void
-DragPrivate::deactivate()
+DraggerPrivate::deactivate()
 {
     state = State {
         QPoint(),
+        QRect(),
         QRect(),
         false
     };
@@ -330,28 +343,28 @@ DragPrivate::deactivate()
     mapToGeometry();
 }
 
-#include "drag.moc"
+#include "dragger.moc"
 
-Drag::Drag()
-: QWidget(nullptr,
+Dragger::Dragger(QWidget* parent)
+: QWidget(parent,
   Qt::Dialog |
   Qt::FramelessWindowHint)
-, p(new DragPrivate())
+, p(new DraggerPrivate())
 {
     p->widget = this;
     p->init();
     p->paintGrid();
 }
 
-Drag::~Drag()
+Dragger::~Dragger()
 {
 }
 
 void
-Drag::paintEvent(QPaintEvent* event)
+Dragger::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
-    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor
+    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor update
     if (!p->state.dragging) {
         painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     } else {
@@ -360,8 +373,14 @@ Drag::paintEvent(QPaintEvent* event)
     painter.end();
 }
 
+QRect
+Dragger::dragRect() const
+{
+    return p->dragRect();
+}
+
 void
-Drag::update(const QPoint& position)
+Dragger::update(const QPoint& position)
 {
     p->position = position;
     p->mapToGeometry();

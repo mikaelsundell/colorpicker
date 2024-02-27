@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPointer>
+#include <QStyle>
 
 // generated files
 #include "ui_editor.h"
@@ -42,8 +43,8 @@ EditorPrivate::init()
     // widget
     widget->installEventFilter(this);
     // connect
-    connect(ui->slider, SIGNAL(valueChanged(int)), widget, SIGNAL(valueChanged(int)));
-    mac::setupOverlay(widget->winId());
+    connect(ui->slider, &QSlider::valueChanged, widget, &Editor::valueChanged);
+    mac::setTopLevel(widget->winId());
 }
 
 void
@@ -97,18 +98,20 @@ EditorPrivate::update()
 bool
 EditorPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (event->type() == QEvent::KeyPress)
-    {
+    if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
-        if (keyEvent->key() == Qt::Key_Escape)
-        {
+        if (keyEvent->key() == Qt::Key_Escape) {
             widget->hide();
             return true;
         }
     }
+    if (event->type() == QEvent::StyleChange) {
+        widget->style()->polish(widget); // update stylesheet
+        update();
+        widget->QDialog::update();
+    }
     if (event->type() == QEvent::WindowDeactivate) {
-        if (widget->isVisible())
-        {
+        if (widget->isVisible()) {
             widget->hide();
         }
     }

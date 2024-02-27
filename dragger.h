@@ -5,14 +5,15 @@
 #pragma once
 #include <QWidget>
 
-class DragPrivate;
-class Drag : public QWidget
+class DraggerPrivate;
+class Dragger: public QWidget
 {
     Q_OBJECT
     public:
-        Drag();
-        virtual ~Drag();
+        Dragger(QWidget* parent = nullptr);
+        virtual ~Dragger();
         void paintEvent(QPaintEvent* event) override;
+        QRect dragRect() const;
 
     public Q_SLOTS:
         void update(const QPoint& position);
@@ -22,5 +23,5 @@ class Drag : public QWidget
         void closed();
     
     private:
-        QScopedPointer<DragPrivate> p;
+        QScopedPointer<DraggerPrivate> p;
 };

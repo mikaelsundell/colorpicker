@@ -38,7 +38,7 @@ class Colorwheel : public QWidget
         void setSaturationVisible(bool visible);
         void setSelected(int selected);
         void setZoomFactor(qreal factor);
-    
+
     protected:
         void paintEvent(QPaintEvent *event) override;
         

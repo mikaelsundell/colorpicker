@@ -10,12 +10,12 @@ class Picker : public QWidget
 {
     Q_OBJECT
     public:
-        Picker();
+        Picker(QWidget* parent = nullptr);
         virtual ~Picker();
         QColor borderColor();
         QColor color();
         void paintEvent(QPaintEvent* event) override;
-
+    
     public Q_SLOTS:
         void setBorderColor(const QColor& color);
         void setColor(const QColor& color);

@@ -366,7 +366,7 @@
                </layout>
               </item>
               <item>
-               <widget class="QComboBox" name="iccConvertProfile">
+               <widget class="QComboBox" name="iccColorProfile">
                 <property name="font">
                  <font>
                   <pointsize>12</pointsize>
@@ -390,7 +390,7 @@
                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                   </property>
                   <item row="0" column="0">
-                   <widget class="QLabel" name="hlabel">
+                   <widget class="QLabel" name="display1Label">
                     <property name="text">
                      <string>H:</string>
                     </property>
@@ -404,7 +404,7 @@
                    </widget>
                   </item>
                   <item row="1" column="0">
-                   <widget class="QLabel" name="slabel">
+                   <widget class="QLabel" name="display2Label">
                     <property name="text">
                      <string>S:</string>
                     </property>
@@ -418,7 +418,7 @@
                    </widget>
                   </item>
                   <item row="2" column="0">
-                   <widget class="QLabel" name="vlabel">
+                   <widget class="QLabel" name="display3Label">
                     <property name="text">
                      <string>V:</string>
                     </property>
@@ -982,7 +982,7 @@
               <item>
                <widget class="QToolButton" name="toggleDrag">
                 <property name="toolTip">
-                 <string>Capture from drag</string>
+                 <string>Capture colors from drag</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1012,7 +1012,7 @@
               <item>
                <widget class="QToolButton" name="togglePick">
                 <property name="toolTip">
-                 <string>Capture from pick</string>
+                 <string>Capture color from picker</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1249,6 +1249,9 @@
      <addaction name="asFloatValues"/>
      <addaction name="asHexadecimalValues"/>
      <addaction name="asPercentageValues"/>
+     <addaction name="separator"/>
+     <addaction name="asHSVDisplay"/>
+     <addaction name="asHSLDisplay"/>
     </widget>
     <widget class="QMenu" name="magnify">
      <property name="title">
@@ -1560,6 +1563,25 @@
    </property>
    <property name="shortcut">
     <string>Shift+Return</string>
+   </property>
+  </action>
+  <action name="asHSVDisplay">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>as HSV</string>
+   </property>
+  </action>
+  <action name="asHSLDisplay">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>as HSL</string>
    </property>
   </action>
  </widget>

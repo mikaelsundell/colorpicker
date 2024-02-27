@@ -9,174 +9,63 @@
 #import <Cocoa/Cocoa.h>
 
 #include <QMutex>
-#include <QScreen>
-#include <QGuiApplication>
-#include <QApplication>
-
-namespace
-{
-    QPoint convertMouseLocation(NSPoint point)
-    {
-        QScreen* screen = QGuiApplication::primaryScreen();
-        // this is worth to mention, mac uses float mouse location vs. integer in Qt,
-        // type conversion to closest integer will fail geometry contains() checks as
-        // mouse may be rounded up and fall on edge, hence treated as outside.
-        QPointF cursor = QPointF(point.x, screen->geometry().height() - point.y);
-        return QPoint(floor(cursor.x()), floor(cursor.y()));
-    }
-
-    typedef struct
-    {
-        CFUUIDRef displayUUid;
-        CFURLRef deviceProfileUrl;
-    } ColorSync;
-
-    bool
-    colorSyncIterateCallback(CFDictionaryRef dict, void *data)
-    {
-        ColorSync* colorsync = (ColorSync *)data;
-        CFStringRef str;
-        CFUUIDRef uuid;
-        CFBooleanRef iscur;
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceClass, (const void**)&str))
-        {
-            return true;
-        }
-        if (!CFEqual(str, kColorSyncDisplayDeviceClass))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceID, (const void**)&uuid))
-        {
-            return true;
-        }
-        if (!CFEqual(uuid, colorsync->displayUUid))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileIsCurrent, (const void**)&iscur))
-        {
-            return true;
-        }
-        if (!CFBooleanGetValue(iscur))
-        {
-            return true;
-        }
-        if (!CFDictionaryGetValueIfPresent(dict, kColorSyncDeviceProfileURL, (const void**)&(colorsync->deviceProfileUrl)))
-        {
-            return true;
-        }
-        CFRetain(colorsync->deviceProfileUrl);
-        return false;
-    }
-
-    struct DisplayInfo {
-        uint32_t displayNumber;
-        CFStringRef displayProfile;
-        DisplayInfo()
-        {}
-        ~DisplayInfo()
-        {
-            CFRelease(displayProfile);
-        }
-    };
-
-    DisplayInfo grabDisplayInfo(NSScreen* screen)
-    {
-        DisplayInfo display;
-        NSDictionary *deviceDescription = [screen deviceDescription];
-        CGDirectDisplayID displayId = (CGDirectDisplayID)[[deviceDescription objectForKey:@"NSScreenNumber"] unsignedIntValue];
-        display.displayNumber = displayId;
-
-        ColorSync colorsync;
-        colorsync.displayUUid = CGDisplayCreateUUIDFromDisplayID(displayId);
-        colorsync.deviceProfileUrl = NULL;
-
-        ColorSyncIterateDeviceProfiles(colorSyncIterateCallback, (void *)&colorsync);
-        CFStringRef deviceProfileURL = CFURLCopyFileSystemPath(colorsync.deviceProfileUrl, kCFURLPOSIXPathStyle);
-        CFRelease(colorsync.displayUUid);
-        CFRelease(colorsync.deviceProfileUrl);
-        display.displayProfile = deviceProfileURL;
-        return display;
-    }
-
-
-    DisplayInfo
-    grabDisplayInfo(NSPoint point)
-    {
-        for(NSScreen* screen in NSScreen.screens)
-        {
-            if (NSMouseInRect(point, screen.frame, false))
-            {
-                return grabDisplayInfo(screen);
-            }
-        }
-        return DisplayInfo();
-    }
-};
 
 void
 Colorpicker::registerEvents()
 {
     static QMutex mutex;
     static QPoint lastpos;
-    NSApplication *app = [NSApplication sharedApplication];
+    NSApplication* app = [NSApplication sharedApplication];
     [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
                                                       object:nil
                                                        queue:nil
                                                   usingBlock:^(NSNotification *notification) {
         NSPoint point = [NSEvent mouseLocation];
-        QPoint mouseLocation = convertMouseLocation(point);
+        QPoint cursor = mac::fromNativeCursor(point.x, point.y);
         if (active()) {
-            if (mouseLocation != lastpos && mutex.tryLock()) {
-                DisplayInfo display = grabDisplayInfo(point);
+            if (cursor != lastpos && mutex.tryLock()) {
+                mac::IccProfile iccProfile = mac::grabIccProfile(cursor.x(), cursor.y());
                 pickEvent(
-                    Colorpicker::PickEvent() =
-                    {
-                        int(display.displayNumber),
-                        QString::fromCFString(display.displayProfile),
-                        mouseLocation
+                    Colorpicker::PickEvent() = {
+                        iccProfile.screenNumber,
+                        iccProfile.displayProfileUrl,
+                        cursor
                     }
-                          
                 );
-                lastpos = mouseLocation;
+                lastpos = cursor;
                 mutex.unlock();
             }
         } else {
             moveEvent(
-                Colorpicker::MoveEvent() =
-                {
-                    mouseLocation
+                Colorpicker::MoveEvent() = {
+                    cursor
                 }
             );
         }
     }];
+    
     [NSEvent addLocalMonitorForEventsMatchingMask:
        (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
-        handler:^(NSEvent * event)
-    {
+        handler:^(NSEvent * event) {
         NSPoint point = [NSEvent mouseLocation];
-        QPoint mouseLocation = convertMouseLocation(point);
+        QPoint cursor = mac::fromNativeCursor(point.x, point.y);
         if (active()) {
-            if (mouseLocation != lastpos && mutex.tryLock()) {
-                DisplayInfo display = grabDisplayInfo(point);
+            if (cursor != lastpos && mutex.tryLock()) {
+                mac::IccProfile iccProfile = mac::grabIccProfile(cursor.x(), cursor.y());
                 pickEvent(
-                    Colorpicker::PickEvent() =
-                    {
-                        int(display.displayNumber),
-                        QString::fromCFString(display.displayProfile),
-                        mouseLocation
+                    Colorpicker::PickEvent() = {
+                        iccProfile.screenNumber,
+                        iccProfile.displayProfileUrl,
+                        cursor
                     }
-                          
                 );
-                lastpos = mouseLocation;
+                lastpos = cursor;
                 mutex.unlock();
             }
         } else {
             moveEvent(
-                Colorpicker::MoveEvent() =
-                {
-                    mouseLocation
+                Colorpicker::MoveEvent() = {
+                    cursor
                 }
             );
         }
@@ -186,29 +75,26 @@ Colorpicker::registerEvents()
     // copies of events the system posts to other applications.
     [NSEvent addGlobalMonitorForEventsMatchingMask:
      (NSEventMaskMouseMoved | NSEventMaskLeftMouseDragged | NSEventMaskRightMouseDragged | NSEventMaskOtherMouseDragged)
-        handler:^(NSEvent * event)
-     {
+        handler:^(NSEvent * event) {
         NSPoint point = [NSEvent mouseLocation];
-        QPoint mouseLocation = convertMouseLocation(point);
+        QPoint cursor = mac::fromNativeCursor(point.x, point.y);
         if (active()) {
-            if (mouseLocation != lastpos && mutex.tryLock()) {
-                DisplayInfo display = grabDisplayInfo(point);
+            if (cursor != lastpos && mutex.tryLock()) {
+                mac::IccProfile iccProfile = mac::grabIccProfile(cursor.x(), cursor.y());
                 pickEvent(
-                    Colorpicker::PickEvent() =
-                    {
-                        int(display.displayNumber),
-                        QString::fromCFString(display.displayProfile),
-                        mouseLocation
+                    Colorpicker::PickEvent() = {
+                        iccProfile.screenNumber,
+                        iccProfile.displayProfileUrl,
+                        cursor
                     }
                 );
-                lastpos = mouseLocation;
+                lastpos = cursor;
                 mutex.unlock();
             }
         } else {
             moveEvent(
-                Colorpicker::MoveEvent() =
-                {
-                    mouseLocation
+                Colorpicker::MoveEvent() = {
+                    cursor
                 }
             );
         }

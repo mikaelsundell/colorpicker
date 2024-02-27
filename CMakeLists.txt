@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/mikaelsundell/colorpicker
 
-cmake_minimum_required( VERSION 3.0 )
+cmake_minimum_required( VERSION 3.27 )
 set( project_name "Colorpicker" )
 
 project( ${project_name} )
@@ -11,13 +11,14 @@ project( ${project_name} )
 #list(APPEND CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}/lib/cmake")
 
 # packages
-set (qt6_modules Core PrintSupport Gui Widgets OpenGL)
+set (qt6_modules Core PrintSupport Gui Widgets)
 find_package(Qt6 COMPONENTS ${qt6_modules} CONFIG REQUIRED)
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTORCC ON)
 set (CMAKE_AUTOUIC ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+find_package( OpenCV CONFIG REQUIRED )
 find_package( Lcms2 REQUIRED )
 
 # sources
@@ -27,16 +28,16 @@ set (app_sources
     colorpicker.h
     colorwheel.cpp
     colorwheel.h
-    drag.h
-    drag.cpp
+    dragger.h
+    dragger.cpp
     editor.h
     editor.cpp
     eventfilter.h
     eventfilter.cpp
+    icctransform.h
+    icctransform.cpp
     label.h
     label.cpp
-    lcms2.cpp
-    lcms2.h
     mac.mm
     mac.h
     main.cpp
@@ -46,6 +47,11 @@ set (app_sources
     editor.ui
     colorpicker.ui
     colorpicker.qrc
+)
+
+# iccprofiles
+file( GLOB app_iccprofiles
+    "iccprofiles/*.icc" 
 )
 
 # resources
@@ -73,8 +79,9 @@ if (APPLE)
     set (MACOSX_BUNDLE_COPYRIGHT "Copyright 2022-present Contributors to the ${project_name} project")
     set (MACOSX_DEPLOYMENT_TARGET ${DEPLOYMENT_TARGET})
     set (CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
+    set_source_files_properties(${app_iccprofiles} PROPERTIES MACOSX_PACKAGE_LOCATION "ICCProfiles")
     set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources})
+    add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources} ${app_iccprofiles})
     # definitions
     add_definitions(-DMACOSX_BUNDLE_COPYRIGHT="${MACOSX_BUNDLE_COPYRIGHT}")
     add_definitions(-DMACOSX_BUNDLE_LONG_VERSION_STRING="${MACOSX_BUNDLE_LONG_VERSION_STRING}")
@@ -100,7 +107,10 @@ if (APPLE)
     target_compile_options (${project_name} PRIVATE -Wno-deprecated-register)
     target_include_directories (${project_name} PRIVATE ${LCMS2_INCLUDE_DIR})
     target_link_libraries (${project_name} 
-        Qt6::Core Qt6::PrintSupport Qt6::Gui Qt6::Widgets 
+        Qt6::Core Qt6::PrintSupport Qt6::Gui Qt6::Widgets
+        opencv_core
+        opencv_imgproc
+        opencv_imgcodecs
         ${LCMS2_LIBRARY}
         "-framework CoreFoundation"
         "-framework AppKit")

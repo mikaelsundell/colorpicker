@@ -48,6 +48,7 @@ class ColorwheelPrivate : public QObject
         bool saturationVisible;
         bool labelsVisible;
         int selected;
+        QString iccProfile;
         QList<QPair<QColor, QString>> colors;
         QList<State> states;
         QPointer<Colorwheel> widget;
@@ -134,10 +135,8 @@ ColorwheelPrivate::update()
         int step = 30;
         qreal length = radius * 1.05;
         int r=360, y=60, g=120, c=180, b=240, m=300;
-        for(int span=0; span<360; span++)
-        {
-            if ((span % step) == 0)
-            {
+        for(int span=0; span<360; span++) {
+            if ((span % step) == 0) {
                 p.drawLine(radius, 0, length, 0);
                 QTransform transform = p.transform();
                 p.save();
@@ -257,8 +256,7 @@ ColorwheelPrivate::update()
                 }
             }
             // triangle
-            if (isselected)
-            {
+            if (isselected) {
                 qreal arrow = ellipse * 0.15;
                 qreal stretch = 1.8;
                 QRectF rect = QRectF(length-ellipse/2+stroke/2, -arrow*stretch/2, arrow, arrow*stretch);
@@ -270,8 +268,7 @@ ColorwheelPrivate::update()
                 p.fillPath(path, brush);
             }
             // labels
-            if (labelsVisible)
-            {
+            if (labelsVisible) {
                 p.save();
                 p.setPen(QPen(brush, stroke/2));
                 QTransform transform = p.transform();
@@ -314,8 +311,7 @@ ColorwheelPrivate::update()
             0.5,
             0.75
         };
-        for (qreal value : values)
-        {
+        for (qreal value : values) {
             p.save();
             QFontMetrics metrics(p.font());
             QString text = QString("%1%").arg(value * 100 * zoomFactor);
@@ -357,8 +353,7 @@ ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr)
         // we draw the full 5760 pie spans to get a smooth good
         // looking pie gradient without visible transitions
         QRect rect = colorwheel.rect();
-        for (int span=0; span<5760; ++span)
-        {
+        for (int span=0; span<5760; ++span) {
             QColor color(QColor::fromHsvF(span/5760.0, 1.0, 1.0));
             QRadialGradient gradient(center, radius);
             gradient.setColorAt(0, Qt::white);
@@ -393,10 +388,8 @@ ColorwheelPrivate::paintColorring(int w, int h, qreal dpr)
         int stops = 12;
         qreal steps = 1.0/(stops-1.0);
         QConicalGradient gradient(0, 0, 0);
-        if (gradient.stops().size() < stops)
-        {
-            for (qreal stop=0; stop<1.0; stop+=steps)
-            {
+        if (gradient.stops().size() < stops) {
+            for (qreal stop=0; stop<1.0; stop+=steps) {
                 gradient.setColorAt(stop, QColor::fromHsvF(stop, 1.0, 1.0));
             }
             gradient.setColorAt(1, QColor::fromHsvF(0, 1.0, 1.0));
@@ -416,8 +409,7 @@ int
 ColorwheelPrivate::mapToSelected(const QPoint& point) const
 {
     // return state index from world space
-    for(State state : states)
-    {
+    for(State state : states) {
         QRectF rect = state.rect;
         if (rect.contains(point))
             return state.index;

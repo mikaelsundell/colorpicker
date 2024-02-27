@@ -51,7 +51,7 @@ PickerPrivate::init()
     widget->resize(mapToSize());
     widget->setCursor(Qt::BlankCursor);
     widget->installEventFilter(this);
-    mac::setupOverlay(widget->winId());
+    mac::setTopLevel(widget->winId());
 }
 
 void
@@ -64,8 +64,6 @@ PickerPrivate::mapToGeometry()
     int y = position.y() - size.height() / 2;
     int width = widget->width();
     int height = widget->height();
-    
-    
     QRect screenGeometry = screen->geometry();
     // left
     if (x < screenGeometry.left()) {
@@ -108,7 +106,7 @@ PickerPrivate::mapToGeometry()
 QSize
 PickerPrivate::mapToSize() const
 {
-    return baseSize * factor;
+    return(baseSize * factor);
 }
 
 void
@@ -127,7 +125,7 @@ PickerPrivate::paintPicker()
     qreal diameter = std::min(size.width(), size.height()) * scale;
     qreal radius = diameter/2.0;
     QPointF center(size.width()/2.0, size.height()/2.0);
-    QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);;
+    QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
     QBrush brush = QBrush(borderColor);
     // ellipse
     {
@@ -153,32 +151,27 @@ PickerPrivate::paintPicker()
 bool
 PickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    //qDebug() << "event: " << event;
-    if (event->type() == QEvent::KeyPress)
-    {
+    if (event->type() == QEvent::Hide) {
+        widget->closed();
+    }
+    if (event->type() == QEvent::KeyPress) {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
-        if (keyEvent->key() == Qt::Key_Escape)
-        {
+        if (keyEvent->key() == Qt::Key_Escape) {
             widget->hide();
-            widget->closed();
             return true;
         }
-        else if (keyEvent->key() == Qt::Key_Plus)
-        {
+        else if (keyEvent->key() == Qt::Key_Plus) {
             factor = qMin(factor + 0.2, 1.0);
             paintPicker();
             mapToGeometry(); // needed to update mask
         }
-        else if (keyEvent->key() == Qt::Key_Minus)
-        {
+        else if (keyEvent->key() == Qt::Key_Minus) {
             factor = qMax(factor - 0.2, 0.2);
             paintPicker();
             mapToGeometry(); // needed to update mask
         }
     }
-    
-    if (event->type() == QEvent::QEvent::MouseButtonPress)
-    {
+    if (event->type() == QEvent::QEvent::MouseButtonPress) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
             widget->triggered();
@@ -186,7 +179,7 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         
         if (mouseEvent->button() == Qt::RightButton) {
             widget->hide();
-            widget->closed();
+            
         }
         return true;
     }
@@ -195,8 +188,8 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
 
 #include "picker.moc"
 
-Picker::Picker()
-: QWidget(nullptr,
+Picker::Picker(QWidget* parent)
+: QWidget(parent,
   Qt::Dialog |
   Qt::FramelessWindowHint)
 , p(new PickerPrivate())
@@ -226,7 +219,7 @@ void
 Picker::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
-    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor
+    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor update
     painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     painter.end();
 }

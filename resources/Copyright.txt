@@ -14,4 +14,6 @@ Tiff: Copyright (c) 1988-1997 by Sam Leffler and Copyright (c) 1991-1997 by Sili
 
 The Qt Company Ltd.: Copyright (C) 2016 by The Qt Company Ltd. All rights reserved.
 
+sRGB color profile icc file, Copyright International Color Consortium, 2015
+
 The use of the above-mentioned software within this product is in compliance with the respective licenses and/or terms and conditions of the copyright holders. The inclusion of these third-party libraries does not imply any endorsement by the copyright holders of the products developed using their software.

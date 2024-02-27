@@ -4,10 +4,10 @@
 
 #include "colorpicker.h"
 #include "picker.h"
-#include "drag.h"
+#include "dragger.h"
 #include "editor.h"
 #include "eventfilter.h"
-#include "lcms2.h"
+#include "icctransform.h"
 #include "mac.h"
 
 #include <QAction>
@@ -29,7 +29,13 @@
 #include <QTextTable>
 #include <QUrl>
 #include <QWindow>
-#include <QDebug>
+
+// stdc++
+#include <random>
+
+// opencv
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/utils/logger.hpp>
 
 // generated files
 #include "ui_about.h"
@@ -59,6 +65,17 @@ class ColorpickerPrivate : public QObject
             Hex,
             Percentage
         };
+        enum Display
+        {
+            Hsv,
+            Hsl
+        };
+        enum Mode
+        {
+            None,
+            Pick,
+            Drag
+        };
     public:
         ColorpickerPrivate();
         void init();
@@ -66,6 +83,7 @@ class ColorpickerPrivate : public QObject
         void update();
         void view();
         void widget();
+        void profile();
         void blank();
         void activate();
         void deactivate();
@@ -77,7 +95,9 @@ class ColorpickerPrivate : public QObject
         void togglePin(bool checked);
         void toggleActive(bool checked);
         void pick();
-        void closed();
+        void drag();
+        void pickClosed();
+        void dragClosed();
         void togglePick();
         void toggleDrag();
         void copyRGB();
@@ -86,11 +106,13 @@ class ColorpickerPrivate : public QObject
         void copyHEX();
         void copyIccProfile();
         void copyColor();
-        void as8bit();
-        void as10bit();
-        void asFloat();
-        void asHex();
-        void asPercentage();
+        void as8bitValues();
+        void as10bitValues();
+        void asFloatValues();
+        void asHexValues();
+        void asPercentageValues();
+        void asHSVValues();
+        void asHSLValues();
         void magnify1x();
         void magnify2x();
         void magnify3x();
@@ -155,13 +177,12 @@ class ColorpickerPrivate : public QObject
                 QColor color;
                 QRect rect;
                 int magnify;
-                QPixmap buffer;
+                QImage image;
                 QPoint cursor;
                 QPoint origin;
                 int displayNumber;
                 QString iccProfile;
                 QString iccDisplayProfile;
-                QPixmap iccPixmap;
         };
         class Edit
         {
@@ -171,10 +192,14 @@ class ColorpickerPrivate : public QObject
                     Rgb,
                     Hsv
                 };
-                ColorpickerPrivate::RgbChannel rgbChannel;
-                ColorpickerPrivate::HsvChannel hsvChannel;
+                RgbChannel rgbChannel;
+                HsvChannel hsvChannel;
                 Type type;
         };
+    
+        QRect grabRect(QPoint cursor);
+        QImage grabBuffer(QRect rect);
+        bool underMouse(QWidget* widget);
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
         float channelHsl(QColor color, HslChannel channel);
@@ -186,6 +211,9 @@ class ColorpickerPrivate : public QObject
         QString asPercentage(float channel);
         QString asDegree(float channel);
         QByteArray asBase64(const QImage& image, QString format);
+        cv::Mat asBGR(const cv::Mat& mat);
+        cv::Mat asFloat32(const cv::Mat& mat);
+        QColor asColor(const cv::Vec3f& vec);
         QList<QPair<QColor,QString>> asColors();
         int width;
         int height;
@@ -193,22 +221,24 @@ class ColorpickerPrivate : public QObject
         int magnify;
         int displayNumber;
         QString iccProfile;
-        QString iccConvertProfile;
+        QString iccWindowProfile;
         QString iccDisplayProfile;
-        QMap<WId, QString> iccProfiles;
         QPoint cursor;
         bool active;
         bool mouselocation;
         Format format;
+        Display display;
+        Mode mode;
         State state;
         Edit edit;
         int selected;
         QSize size;
         QList<State> states;
-
         QPointer<Colorpicker> window;
+        QList<QColor> dragcolors;
+        QList<QPoint> dragpositions;
         QScopedPointer<Picker> picker;
-        QScopedPointer<Drag> drag;
+        QScopedPointer<Dragger> dragger;
         QScopedPointer<Editor> editor;
         QScopedPointer<Eventfilter> displayfilter;
         QScopedPointer<Eventfilter> colorsfilter;
@@ -223,6 +253,8 @@ ColorpickerPrivate::ColorpickerPrivate()
 , active(true)
 , mouselocation(true)
 , format(Format::Int8bit)
+, display(Display::Hsv)
+, mode(Mode::None)
 , selected(-1)
 {
 }
@@ -230,7 +262,7 @@ ColorpickerPrivate::ColorpickerPrivate()
 void
 ColorpickerPrivate::init()
 {
-    mac::setupMac();
+    mac::setDarkAppearance();
     // ui
     ui.reset(new Ui_Colorpicker());
     ui->setupUi(window);
@@ -238,22 +270,22 @@ ColorpickerPrivate::init()
     // needed to keep .ui fixed size from setupUi
     window->setFixedSize(window->size());
     // utils
-    picker.reset(new Picker());
-    drag.reset(new Drag());
-    editor.reset(new Editor());
+    picker.reset(new Picker(window.data()));
+    dragger.reset(new Dragger(window.data()));
+    // editor
+    editor.reset(new Editor(window.data()));
+    editor->setObjectName("editor");
     // resources
-    QDir resources(QApplication::applicationDirPath() + "/../Resources");
-    ui->iccConvertProfile->insertSeparator(ui->iccConvertProfile->count());
+    QDir resources(QApplication::applicationDirPath() + "/../ICCProfiles");
+    ui->iccColorProfile->insertSeparator(ui->iccColorProfile->count());
     for(QFileInfo resourceFile : resources.entryInfoList( QStringList( "*.icc" )))
     {
-        ui->iccConvertProfile->addItem
+        ui->iccColorProfile->addItem
             ("Convert to " + resourceFile.baseName(), QVariant::fromValue(resourceFile.filePath()));
     }
     // actions
     ui->toggleActive->setDefaultAction(ui->active);
     ui->togglePin->setDefaultAction(ui->pin);
-    // stylesheet
-    stylesheet();
     // event filter
     window->installEventFilter(this);
     // display filter
@@ -263,77 +295,96 @@ ColorpickerPrivate::init()
     colorsfilter.reset(new Eventfilter);
     ui->colorsBar->installEventFilter(colorsfilter.data());
     // connect
-    connect(displayfilter.data(), SIGNAL(pressed()), ui->toggleDisplay, SLOT(click()));
-    connect(colorsfilter.data(), SIGNAL(pressed()), ui->toggleColors, SLOT(click()));
-    connect(ui->toggleDisplay, SIGNAL(pressed()), this, SLOT(toggleDisplay()));
-    connect(ui->toggleColors, SIGNAL(pressed()), this, SLOT(toggleColors()));
-    connect(ui->iccConvertProfile, SIGNAL(currentIndexChanged(int)), this, SLOT(iccConvertProfileChanged(int)));
-    connect(ui->r, SIGNAL(triggered()), this, SLOT(toggleR()));
-    connect(ui->g, SIGNAL(triggered()), this, SLOT(toggleG()));
-    connect(ui->b, SIGNAL(triggered()), this, SLOT(toggleB()));
-    connect(ui->h, SIGNAL(triggered()), this, SLOT(toggleH()));
-    connect(ui->s, SIGNAL(triggered()), this, SLOT(toggleS()));
-    connect(ui->v, SIGNAL(triggered()), this, SLOT(toggleV()));
-    connect(ui->pick, SIGNAL(triggered()), this, SLOT(togglePick()));
-    connect(ui->togglePick, SIGNAL(released()), this, SLOT(togglePick())); // need to be released for cursor update
-    connect(ui->drag, SIGNAL(triggered()), this, SLOT(toggleDrag()));
-    connect(ui->toggleDrag, SIGNAL(released()), this, SLOT(toggleDrag())); // need to be released for cursor update
-    connect(ui->copyRGBAsText, SIGNAL(triggered()), this, SLOT(copyRGB()));
-    connect(ui->copyHSVAsText, SIGNAL(triggered()), this, SLOT(copyHSV()));
-    connect(ui->copyHSLAsText, SIGNAL(triggered()), this, SLOT(copyHSL()));
-    connect(ui->copyHexAsText, SIGNAL(triggered()), this, SLOT(copyHEX()));
-    connect(ui->copyIccAsText, SIGNAL(triggered()), this, SLOT(copyIccProfile()));
-    connect(ui->copyColorAsBitmap, SIGNAL(triggered()), this, SLOT(copyColor()));
-    connect(ui->active, SIGNAL(toggled(bool)), this, SLOT(toggleActive(bool)));
-    connect(ui->pin, SIGNAL(toggled(bool)), this, SLOT(togglePin(bool)));
-    connect(ui->as8bitValues, SIGNAL(triggered()), this, SLOT(as8bit()));
-    connect(ui->as10bitValues, SIGNAL(triggered()), this, SLOT(as10bit()));
-    connect(ui->asFloatValues, SIGNAL(triggered()), this, SLOT(asFloat()));
-    connect(ui->asHexadecimalValues, SIGNAL(triggered()), this, SLOT(asHex()));
-    connect(ui->asPercentageValues, SIGNAL(triggered()), this, SLOT(asPercentage()));
+    connect(displayfilter.data(), &Eventfilter::pressed, ui->toggleDisplay, &QPushButton::click);
+    connect(colorsfilter.data(), &Eventfilter::pressed, ui->toggleColors, &QPushButton::click);
+    connect(ui->toggleDisplay, &QPushButton::pressed, this, &ColorpickerPrivate::toggleDisplay);
+    connect(ui->toggleColors, &QPushButton::pressed, this, &ColorpickerPrivate::toggleColors);
+    connect(ui->iccColorProfile, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, &ColorpickerPrivate::iccConvertProfileChanged);
+    connect(ui->r, &Label::triggered, this, &ColorpickerPrivate::toggleR);
+    connect(ui->g, &Label::triggered, this, &ColorpickerPrivate::toggleG);
+    connect(ui->b, &Label::triggered, this, &ColorpickerPrivate::toggleB);
+    connect(ui->h, &Label::triggered, this, &ColorpickerPrivate::toggleH);
+    connect(ui->s, &Label::triggered, this, &ColorpickerPrivate::toggleS);
+    connect(ui->v, &Label::triggered, this, &ColorpickerPrivate::toggleV);
+    connect(ui->pick, &QAction::triggered, this, &ColorpickerPrivate::togglePick);
+    connect(ui->togglePick, &QPushButton::released, this, &ColorpickerPrivate::togglePick);
+    connect(ui->drag, &QAction::triggered, this, &ColorpickerPrivate::toggleDrag);
+    connect(ui->toggleDrag, &QPushButton::released, this, &ColorpickerPrivate::toggleDrag);
+    connect(ui->copyRGBAsText, &QAction::triggered, this, &ColorpickerPrivate::copyRGB);
+    connect(ui->copyHSVAsText, &QAction::triggered, this, &ColorpickerPrivate::copyHSV);
+    connect(ui->copyHSLAsText, &QAction::triggered, this, &ColorpickerPrivate::copyHSL);
+    connect(ui->copyHexAsText, &QAction::triggered, this, &ColorpickerPrivate::copyHEX);
+    connect(ui->copyIccAsText, &QAction::triggered, this, &ColorpickerPrivate::copyIccProfile);
+    connect(ui->copyColorAsBitmap, &QAction::triggered, this, &ColorpickerPrivate::copyColor);
+    connect(ui->active, &QAction::toggled, this, &ColorpickerPrivate::toggleActive);
+    connect(ui->pin, &QAction::toggled, this, &ColorpickerPrivate::togglePin);
+    connect(ui->as8bitValues, &QAction::triggered, this, &ColorpickerPrivate::as8bitValues);
+    connect(ui->as10bitValues, &QAction::triggered, this, &ColorpickerPrivate::as10bitValues);
+    connect(ui->asFloatValues, &QAction::triggered, this, &ColorpickerPrivate::asFloatValues);
+    connect(ui->asHexadecimalValues, &QAction::triggered, this, &ColorpickerPrivate::asHexValues);
+    connect(ui->asPercentageValues, &QAction::triggered, this, &ColorpickerPrivate::asPercentageValues);
     {
         QActionGroup* actions = new QActionGroup(this);
         actions->setExclusive(true);
-        for(QAction* action : ui->displayValues->actions())
-            actions->addAction(action);
+        {
+            actions->addAction(ui->as8bitValues);
+            actions->addAction(ui->as10bitValues);
+            actions->addAction(ui->asFloatValues);
+            actions->addAction(ui->asHexadecimalValues);
+            actions->addAction(ui->asPercentageValues);
+        }
     }
-    connect(ui->magnify1x, SIGNAL(triggered()), this, SLOT(magnify1x()));
-    connect(ui->magnify2x, SIGNAL(triggered()), this, SLOT(magnify2x()));
-    connect(ui->magnify3x, SIGNAL(triggered()), this, SLOT(magnify3x()));
-    connect(ui->magnify4x, SIGNAL(triggered()), this, SLOT(magnify4x()));
-    connect(ui->magnify5x, SIGNAL(triggered()), this, SLOT(magnify5x()));
+    connect(ui->asHSVDisplay, &QAction::triggered, this, &ColorpickerPrivate::asHSVValues);
+    connect(ui->asHSLDisplay, &QAction::triggered, this, &ColorpickerPrivate::asHSLValues);
+    {
+        QActionGroup* actions = new QActionGroup(this);
+        actions->setExclusive(true);
+        {
+            actions->addAction(ui->asHSVDisplay);
+            actions->addAction(ui->asHSLDisplay);
+        }
+        
+    }
+    connect(ui->magnify1x, &QAction::triggered, this, &ColorpickerPrivate::magnify1x);
+    connect(ui->magnify2x, &QAction::triggered, this, &ColorpickerPrivate::magnify2x);
+    connect(ui->magnify3x, &QAction::triggered, this, &ColorpickerPrivate::magnify3x);
+    connect(ui->magnify4x, &QAction::triggered, this, &ColorpickerPrivate::magnify4x);
+    connect(ui->magnify5x, &QAction::triggered, this, &ColorpickerPrivate::magnify5x);
     {
         QActionGroup* actions = new QActionGroup(this);
         actions->setExclusive(true);
         for(QAction* action : ui->magnify->actions())
             actions->addAction(action);
     }
-    connect(ui->toggleMouseLocation, SIGNAL(triggered()), this, SLOT(toggleMouseLocation()));
-    connect(ui->aperture, SIGNAL(valueChanged(int)), this, SLOT(apertureChanged(int)));
-    connect(ui->markerSize, SIGNAL(valueChanged(int)), this, SLOT(markerSizeChanged(int)));
-    connect(ui->backgroundOpacity, SIGNAL(valueChanged(int)), this, SLOT(backgroundOpacityChanged(int)));
-    connect(ui->angle, SIGNAL(valueChanged(int)), this, SLOT(angleChanged(int)));
-    connect(ui->iqline, SIGNAL(stateChanged(int)), this, SLOT(iqlineChanged(int)));
-    connect(ui->zoom, SIGNAL(stateChanged(int)), this, SLOT(zoomChanged(int)));
-    connect(ui->saturation, SIGNAL(stateChanged(int)), this, SLOT(saturationChanged(int)));
-    connect(ui->labels, SIGNAL(stateChanged(int)), this, SLOT(labelsChanged(int)));
-    connect(ui->clear, SIGNAL(triggered()), this, SLOT(clear()));
-    connect(ui->toggleClear, SIGNAL(pressed()), this, SLOT(clear()));
-    connect(ui->pdf, SIGNAL(pressed()), this, SLOT(pdf()));
-    connect(ui->about, SIGNAL(triggered()), this, SLOT(about()));
-    connect(ui->openGithubReadme, SIGNAL(triggered()), this, SLOT(openGithubReadme()));
-    connect(ui->openGithubIssues, SIGNAL(triggered()), this, SLOT(openGithubIssues()));
-    connect(picker.get(), SIGNAL(triggered()), this, SLOT(pick()));
-    connect(picker.get(), SIGNAL(closed()), this, SLOT(closed()));
-    connect(editor.get(), SIGNAL(valueChanged(int)), this, SLOT(editorChanged(int)));
+    connect(ui->toggleMouseLocation, &QAction::triggered, this, &ColorpickerPrivate::toggleMouseLocation);
+    connect(ui->aperture, &QSlider::valueChanged, this, &ColorpickerPrivate::apertureChanged);
+    connect(ui->markerSize, &QSlider::valueChanged, this, &ColorpickerPrivate::markerSizeChanged);
+    connect(ui->backgroundOpacity, &QSlider::valueChanged, this, &ColorpickerPrivate::backgroundOpacityChanged);
+    connect(ui->angle, &QSlider::valueChanged, this, &ColorpickerPrivate::angleChanged);
+    connect(ui->iqline, &QCheckBox::stateChanged, this, &ColorpickerPrivate::iqlineChanged);
+    connect(ui->zoom, &QCheckBox::stateChanged, this, &ColorpickerPrivate::zoomChanged);
+    connect(ui->saturation, &QCheckBox::stateChanged, this, &ColorpickerPrivate::saturationChanged);
+    connect(ui->labels, &QCheckBox::stateChanged, this, &ColorpickerPrivate::labelsChanged);
+    connect(ui->clear, &QAction::triggered, this, &ColorpickerPrivate::clear);
+    connect(ui->toggleClear, &QPushButton::pressed, this, &ColorpickerPrivate::clear);
+    connect(ui->pdf, &QPushButton::pressed, this, &ColorpickerPrivate::pdf);
+    connect(ui->about, &QAction::triggered, this, &ColorpickerPrivate::about);
+    connect(ui->openGithubReadme, &QAction::triggered, this, &ColorpickerPrivate::openGithubReadme);
+    connect(ui->openGithubIssues, &QAction::triggered, this, &ColorpickerPrivate::openGithubIssues);
+    connect(picker.get(), &Picker::triggered, this, &ColorpickerPrivate::pick);
+    connect(picker.get(), &Picker::closed, this, &ColorpickerPrivate::pickClosed);
+    connect(dragger.get(), &Dragger::triggered, this, &ColorpickerPrivate::drag);
+    connect(dragger.get(), &Dragger::closed, this, &ColorpickerPrivate::dragClosed);
+    connect(editor.get(), &Editor::valueChanged, this, &ColorpickerPrivate::editorChanged);
     // signals
-    connect(this, SIGNAL(readOnly(bool)), ui->r, SLOT(setReadOnly(bool)));
-    connect(this, SIGNAL(readOnly(bool)), ui->g, SLOT(setReadOnly(bool)));
-    connect(this, SIGNAL(readOnly(bool)), ui->b, SLOT(setReadOnly(bool)));
-    connect(this, SIGNAL(readOnly(bool)), ui->h, SLOT(setReadOnly(bool)));
-    connect(this, SIGNAL(readOnly(bool)), ui->s, SLOT(setReadOnly(bool)));
-    connect(this, SIGNAL(readOnly(bool)), ui->v, SLOT(setReadOnly(bool)));
+    connect(this, &ColorpickerPrivate::readOnly, ui->r, &Label::setReadOnly);
+    connect(this, &ColorpickerPrivate::readOnly, ui->g, &Label::setReadOnly);
+    connect(this, &ColorpickerPrivate::readOnly, ui->b, &Label::setReadOnly);
+    connect(this, &ColorpickerPrivate::readOnly, ui->h, &Label::setReadOnly);
+    connect(this, &ColorpickerPrivate::readOnly, ui->s, &Label::setReadOnly);
+    connect(this, &ColorpickerPrivate::readOnly, ui->v, &Label::setReadOnly);
     size = window->size();
+    profile();
     // debug
     #ifdef QT_DEBUG
         QMenu* menu = ui->menubar->addMenu("Debug");
@@ -354,19 +405,45 @@ ColorpickerPrivate::stylesheet()
     QDir resources(QApplication::applicationDirPath());
     QFile stylesheet(resources.absolutePath() + "/../Resources/App.css");
     stylesheet.open(QFile::ReadOnly);
-    qApp->setStyleSheet(stylesheet.readAll());
+    QString qss = stylesheet.readAll();
+    QRegularExpression hslRegex("hsl\\(\\s*(\\d+)\\s*,\\s*(\\d+)%\\s*,\\s*(\\d+)%\\s*\\)");
+    QString transformqss = qss;
+    QRegularExpressionMatchIterator i = hslRegex.globalMatch(transformqss);
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        if (match.hasMatch()) {
+            if (!match.captured(1).isEmpty() &&
+                !match.captured(2).isEmpty() &&
+                !match.captured(3).isEmpty())
+            {
+                int h = match.captured(1).toInt();
+                int s = match.captured(2).toInt();
+                int l = match.captured(3).toInt();
+                QColor color = QColor::fromHslF(h / 360.0f, s / 100.0f, l / 100.0f);
+                // icc profile
+                ICCTransform* transform = ICCTransform::instance();
+                QDir resources(QApplication::applicationDirPath() + "/../Resources");
+                QString iccColorProfile = resources.filePath("sRGB2014.icc"); // build-in Qt profile for colors
+                color = transform->transformTo(color.rgb(), iccColorProfile, iccWindowProfile);
+                QString hsl = QString("hsl(%1, %2%, %3%)")
+                                .arg(color.hue() == -1 ? 0 : color.hue())
+                                .arg(static_cast<int>(color.hslSaturationF() * 100))
+                                .arg(static_cast<int>(color.lightnessF() * 100));
+                
+                transformqss.replace(match.captured(0), hsl);
+            }
+        }
+    }
+    qApp->setStyleSheet(transformqss);
 }
 
-void
-ColorpickerPrivate::update()
+QRect
+ColorpickerPrivate::grabRect(QPoint pos)
 {
-    if (!active)
-        return;
-    
     int w = int(width / float(magnify));
     int h = int(height / float(magnify));
-    int x = cursor.x() - w / 2;
-    int y = cursor.y() - h / 2;
+    int x = pos.x() - w / 2;
+    int y = pos.y() - h / 2;
     
     if (width % magnify > 0)
         ++w;
@@ -374,27 +451,37 @@ ColorpickerPrivate::update()
     if (height % magnify > 0)
         ++h;
     
-    QPixmap buffer;
-    qreal dpr = 1.0;
-    const QBrush blackBrush = QBrush(Qt::black);
-    if (QScreen *screen = window->screen()) {
-        buffer = mac::grabDisplayPixmap(x, y, w, h, picker->winId());
-        dpr = buffer.devicePixelRatio();
-    } else {
-        buffer = QPixmap(w, h);
-        buffer.fill(blackBrush.color());
+    return(QRect(x, y, w, h));
+}
+
+QImage
+ColorpickerPrivate::grabBuffer(QRect rect)
+{
+    int x = rect.x();
+    int y = rect.y();
+    int w = rect.width();
+    int h = rect.height();
+    
+    WId id = 0;
+    if (mode == Mode::Pick) {
+        id = picker->winId();
     }
+    if (mode == Mode::Drag) {
+        id = dragger->winId();
+    }
+    QImage buffer;
+    const QBrush blackBrush = QBrush(Qt::black);
+    QScreen* screen = QGuiApplication::screenAt(rect.center());
+    buffer = mac::grabImage(x, y, w, h, id);
+   
     QRegion geom(x, y, w, h);
     QRect screenRect;
-    
-    QScreen* screen = QGuiApplication::screenAt(cursor);
     const auto screens = QGuiApplication::screens();
     for (auto screen : screens)
     {
         screenRect |= screen->geometry();
     }
     geom -= screenRect;
-    
     const auto rectsInRegion = geom.rectCount();
     if (rectsInRegion > 0) {
         QPainter p(&buffer);
@@ -404,22 +491,40 @@ ColorpickerPrivate::update()
         p.drawRects(geom.begin(), rectsInRegion);
         p.end();
     }
+    return buffer;
+}
 
-    // paint with device pixel ration and apply
-    // transforms and fills in user space
+bool
+ColorpickerPrivate::underMouse(QWidget* widget) {
+    QPoint pos = widget->mapFromGlobal(QCursor::pos());
+    return widget->rect().contains(pos);
+}
+
+void
+ColorpickerPrivate::update()
+{
+    if (!active)
+        return;
+    
+    QRect grab = grabRect(cursor);
+    QImage buffer = grabBuffer(grab);
+    QScreen* screen = QGuiApplication::screenAt(cursor);
+    qreal dpr = buffer.devicePixelRatio();
+    
+    // paint with device pixel ratio and apply
+    // transforms and fill in user space
     QColor color;
     QRect rect(
-       (w - aperture) / 2,
-       (h - aperture) / 2,
+       (grab.width() - aperture) / 2,
+       (grab.height() - aperture) / 2,
        aperture, aperture
     );
     int colorR=0, colorG=0, colorB=0;
-    QImage image = buffer.toImage();
     for(int cx = rect.left(); cx <= rect.right(); cx++)
     {
         for(int cy = rect.top(); cy <= rect.bottom(); cy++)
         {
-            QColor pixel = image.pixel(cx * dpr, cy * dpr);
+            QColor pixel = buffer.pixel(cx * dpr, cy * dpr);
             colorR += pixel.red();
             colorG += pixel.green();
             colorB += pixel.blue();
@@ -427,22 +532,18 @@ ColorpickerPrivate::update()
     }
     int size = rect.width() * rect.height();
     color = QColor(colorR / size, colorG / size, colorB / size);
+    
     // icc profile
-    if (iccDisplayProfile.isEmpty())
-    {
-        WId windowId = window->winId();
-        if (!iccProfiles.contains(windowId)) {
-            QString profile = mac::grabIccProfile(windowId);
-            iccProfiles.insert(windowId, profile);
-        }
-        iccDisplayProfile = iccProfiles.value(windowId);
+    ICCTransform* transform = ICCTransform::instance();
+    QString iccCurrentProfile = iccProfile;
+    if (!iccCurrentProfile.length()) {
+        iccCurrentProfile = iccDisplayProfile;
     }
-    if (iccConvertProfile.length())
-    {
-        color = QColor::fromRgb(lcms2::convertColor(color.rgb(), iccProfile, iccConvertProfile));
-        iccProfile = iccConvertProfile;
+    if (iccCurrentProfile != iccDisplayProfile) {
+        color = transform->transformTo(color.rgb(), iccDisplayProfile, iccCurrentProfile);
+        buffer = transform->transformTo(buffer, iccDisplayProfile, iccCurrentProfile);
     }
-    // current state
+    // state
     {
         state = State{
           color,
@@ -452,7 +553,7 @@ ColorpickerPrivate::update()
           cursor,
           screen->geometry().topLeft(),
           displayNumber,
-          iccProfile,
+          iccCurrentProfile,
           iccDisplayProfile,
         };
     }
@@ -463,21 +564,20 @@ ColorpickerPrivate::update()
 void
 ColorpickerPrivate::view()
 {
-    qreal dpr = state.buffer.devicePixelRatio();
+    qreal dpr = state.image.devicePixelRatio();
     const QBrush blackBrush = QBrush(Qt::black);
     QColor color;
-    QPixmap buffer;
+    QImage image;
     // icc profile
+    ICCTransform* transform = ICCTransform::instance();
     {
-        if (state.iccProfile != iccDisplayProfile)
-        {
-            color = lcms2::convertColor(state.color.rgb(), state.iccProfile, iccDisplayProfile);
-            buffer = lcms2::convertPixmap(state.buffer, state.iccProfile, iccDisplayProfile);
+        if (state.iccProfile != iccWindowProfile) {
+            color = transform->transformTo(state.color.rgb(), state.iccProfile, iccWindowProfile);
+            image = transform->transformTo(state.image, state.iccProfile, iccWindowProfile);
         }
-        else
-        {
+        else {
             color = state.color;
-            buffer = state.buffer;
+            image = state.image;
         }
     }
     // pixmap
@@ -488,7 +588,7 @@ ColorpickerPrivate::view()
         p.save();
         p.scale(state.magnify, state.magnify);
         p.fillRect(QRect(0, 0, width, height), blackBrush);
-        p.drawPixmap(0, 0, buffer);
+        p.drawImage(0, 0, image);
         p.setPen(QPen(Qt::NoPen));
         p.fillRect(state.rect, QBrush(color));
         QTransform transform = p.transform();
@@ -499,7 +599,6 @@ ColorpickerPrivate::view()
         p.drawRect(frame);
         p.end();
     }
-    state.iccPixmap = QPixmap(pixmap);
     ui->view->setPixmap(pixmap);
 }
 
@@ -510,7 +609,7 @@ ColorpickerPrivate::widget()
     {
         ui->display->setText(QString("Display #%1").arg(state.displayNumber));
         QFontMetrics metrics(ui->iccProfile->font());
-        QString text = metrics.elidedText(QFileInfo(state.iccProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
+        QString text = metrics.elidedText(QFileInfo(state.iccDisplayProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
         ui->iccProfile->setText(text);
     }
     // rgb
@@ -521,9 +620,22 @@ ColorpickerPrivate::widget()
     }
     // hsv
     {
-        ui->h->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::H)));
-        ui->s->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::S)));
-        ui->v->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::V)));
+        if (display == Display::Hsv) {
+            ui->display1Label->setText("H");
+            ui->display2Label->setText("S");
+            ui->display3Label->setText("V");
+            ui->h->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::H)));
+            ui->s->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::S)));
+            ui->v->setText(QString("%1").arg(formatHsv(state.color, HsvChannel::V)));
+        } else {
+            ui->display1Label->setText("H");
+            ui->display2Label->setText("S");
+            ui->display3Label->setText("L");
+            ui->h->setText(QString("%1").arg(formatHsl(state.color, HslChannel::HslH)));
+            ui->s->setText(QString("%1").arg(formatHsl(state.color, HslChannel::HslS)));
+            ui->v->setText(QString("%1").arg(formatHsl(state.color, HslChannel::HslL)));
+            
+        }
     }
     // mouse location
     {
@@ -535,7 +647,19 @@ ColorpickerPrivate::widget()
         QList<QPair<QColor,QString>> colors = asColors();
         if (active)
         {
-            colors.push_back(QPair<QColor,QString>(state.color, QFileInfo(state.iccProfile).baseName()));
+            if (dragcolors.count() > 0) {
+                QString iccCurrentProfile = iccProfile;
+                if (!iccCurrentProfile.length()) {
+                    iccCurrentProfile = iccDisplayProfile;
+                }
+                for(QColor color : dragcolors) {
+                    colors.push_back(QPair<QColor,QString>(color.rgb(), QFileInfo(iccCurrentProfile).baseName()));
+                }
+            }
+            else
+            {
+                colors.push_back(QPair<QColor,QString>(state.color, QFileInfo(state.iccProfile).baseName()));
+            }
             // push current state, use as selected
             ui->colorWheel->setColors(colors, true);
         }
@@ -546,22 +670,36 @@ ColorpickerPrivate::widget()
         }
     }
     // picker
-    if (picker->isVisible())
+    if (mode == Mode::Pick)
     {
+        QColor color = state.color;
+        
+        // icc profile
+        ICCTransform* transform = ICCTransform::instance();
+        if (state.iccProfile != iccWindowProfile) {
+            color = transform->transformTo(color.rgb(), state.iccProfile, iccDisplayProfile); // use the current display for picking
+        }
         // threshold for border color contrast
-        if (state.color.valueF() < 0.2f) {
+        if (color.valueF() < 0.2f) {
             picker->setBorderColor(Qt::white);
         } else {
             picker->setBorderColor(Qt::black);
         }
-        picker->setColor(state.color);
+        picker->setColor(color);
         picker->update(cursor);
     }
-    // grid
-    if (drag->isVisible())
+    // drag
+    if (mode == Mode::Drag)
     {
-        drag->update(cursor);
+        dragger->update(cursor);
     }
+}
+
+void
+ColorpickerPrivate::profile()
+{
+    iccWindowProfile = mac::grabIccProfileUrl(window->winId());
+    stylesheet();
 }
 
 void
@@ -610,19 +748,19 @@ ColorpickerPrivate::deactivate()
 bool
 ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (event->type() == QEvent::ScreenChangeInternal)
-    {
-        iccDisplayProfile = mac::grabIccProfile(window->winId());
-        view();
-        widget();
+    if (event->type() == QEvent::ScreenChangeInternal) {
+        profile();
+        if (active) {
+            view();
+            widget();
+        }
     }
     if (event->type() ==
         QEvent::KeyPress)
     {
         QKeyEvent* keyEvent = (QKeyEvent*)event;
         if (keyEvent->key() == Qt::Key_Escape) {
-            if (active)
-            {
+            if (active) {
                 deactivate();
             }
         }
@@ -639,8 +777,7 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
             }
         }
     }
-    if (active)
-    {
+    if (active) {
         if (event->type() == QEvent::QEvent::MouseButtonPress) {
             QMouseEvent* mouseEvent = (QMouseEvent*)event;
             if (mouseEvent->button() == Qt::RightButton) {
@@ -648,20 +785,17 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
             }
         }
     }
-    else
-    {
+    else {
         if (event->type() == QEvent::QEvent::MouseButtonPress) {
             QMouseEvent* mouseEvent = (QMouseEvent*)event;
             if (mouseEvent->button() == Qt::LeftButton) {
                 
                 Colorwheel* colorWheel = ui->colorWheel;
-                if (colorWheel->underMouse())
-                {
+                if (underMouse(colorWheel)) {
                     selected = colorWheel->mapToSelected(
                         colorWheel->mapFrom(window, mouseEvent->pos())
                     );
                     if (selected >= 0) {
-                        
                         colorWheel->setSelected(selected);
                         state = states[selected]; // restore state
                         view();
@@ -670,16 +804,12 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                 }
             }
         }
-        if (event->type() == QEvent::QEvent::MouseMove)
-        {
+        if (event->type() == QEvent::QEvent::MouseMove) {
             QMouseEvent* mouseEvent = (QMouseEvent*)event;
-            if (mouseEvent->buttons() & Qt::LeftButton)
-            {
+            if (mouseEvent->buttons() & Qt::LeftButton) {
                 Colorwheel* colorWheel = ui->colorWheel;
-                if (colorWheel->underMouse())
-                {
+                if (underMouse(colorWheel)) {
                     if (selected >= 0) {
-                        
                         QColor color = colorWheel->mapToColor(
                             state.color, colorWheel->mapFrom(window, mouseEvent->pos())
                         );
@@ -691,10 +821,6 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                 }
             }
         }
-    }
-    if (event->type() == QEvent::Close)
-    {
-        lcms2::clear();
     }
     return false;
 }
@@ -721,9 +847,7 @@ ColorpickerPrivate::toggleActive(bool checked)
             emit readOnly(true);
         }
     }
-    
     active = checked;
-    
     if (selected >= 0) {
 
         ui->colorWheel->setSelected(selected);
@@ -770,21 +894,201 @@ ColorpickerPrivate::togglePin(bool checked)
 void
 ColorpickerPrivate::pick()
 {
+    mode = Mode::Pick;
     selected = ui->colorWheel->selected();
     states.push_back(state);
+    update();
 }
 
 void
-ColorpickerPrivate::closed()
+ColorpickerPrivate::drag()
 {
+    mode = Mode::Drag;
+    QRect rect = dragger->dragRect();
+    QImage image = mac::grabImage(rect.x(), rect.y(), rect.width(), rect.height(), dragger->winId());
+    image = image.convertToFormat(QImage::Format_RGB888); // opencv need 24-bit RGB only
+    qreal dpr = image.devicePixelRatio();
+    dragcolors.clear();
+    dragpositions.clear();
+    if (rect.width() > 1 && rect.height() > 1)
+    {
+        int width = image.width();
+        int height = image.height();
+        int colornum = 6;
+        {
+            cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
+            cv::Mat matrix = cv::Mat(image.height(), image.width(), CV_8UC3, (void*)image.constBits(), image.bytesPerLine());
+            matrix = asFloat32(asBGR(matrix));
+            
+            // prepare the image data for k-means clustering
+            // the image is reshaped into a 2D matrix where each row represents a pixel and each column represents a color channel.
+            // this serialization flattens the image into a single row for processing with k-means.
+            cv::Mat serialized = matrix.reshape(1, matrix.total());
+            serialized.convertTo(serialized, CV_32F);
+
+            // perform k-Means clustering
+            // k-means is applied to find 'k' clusters within the color space of the image.
+            // 'k' is predefined, aiming for a broad initial capture of the image's color diversity.
+            int k = 20;
+            std::vector<int> labels;
+            cv::Mat centers;
+            cv::kmeans(serialized, k, labels, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
+
+            // diversity selection logic
+            // calculates pairwise distances between all cluster centers to identify similar colors.
+            std::vector<std::vector<double>> distances(centers.rows, std::vector<double>(centers.rows, 0));
+            for (int i = 0; i < centers.rows; ++i) {
+                for (int j = i + 1; j < centers.rows; ++j) {
+                    distances[i][j] = distances[j][i] = cv::norm(centers.row(i) - centers.row(j));
+                }
+            }
+            
+            // select a diverse set of colors.
+            // aim to select 'tool.colors' that are as distinct as possible based on their pairwise distances.
+            std::set<int> selectedindices;
+            while (selectedindices.size() < colornum)
+            {
+                double maxmindistance = 0;
+                int candidateindex = -1;
+                for (int i = 0; i < centers.rows; ++i)
+                    {
+                    if (selectedindices.find(i) != selectedindices.end()) continue;
+                    double minDistance = std::numeric_limits<double>::max();
+                    for (int j : selectedindices)
+                    {
+                        minDistance = std::min(minDistance, distances[i][j]);
+                    }
+                    if (minDistance > maxmindistance)
+                    {
+                        maxmindistance = minDistance;
+                        candidateindex = i;
+                    }
+                }
+                if (candidateindex != -1) {
+                    selectedindices.insert(candidateindex);
+                } else {
+                    break;
+                }
+            }
+            
+            // create a matrix for the selected diverse centers.
+            cv::Mat diversecenters(selectedindices.size(), centers.cols, centers.type());
+            int idx = 0;
+            for (int selectedIndex : selectedindices) {
+                centers.row(selectedIndex).copyTo(diversecenters.row(idx++));
+            }
+
+            // reassign each pixel in the image to the color of the closest diverse center.
+            // this step alters the original serialized image data to reflect the reduced color palette.
+            for (int i = 0; i < labels.size(); ++i) {
+                int clusterIndex = std::distance(selectedindices.begin(), selectedindices.find(labels[i]));
+                for (int j = 0; j < 3; ++j) { // assuming 3 channels
+                    serialized.at<float>(i * 3 + j) = diversecenters.at<float>(clusterIndex, j);
+                }
+            }
+                
+            const int seed = 101010; // ultimate question of life in binary
+            std::mt19937 gen(seed);
+            
+            // convert to hue and get pixel (x, y) coordinates
+            std::unordered_map<int, std::vector<int>> indicesmap;
+            for (int i = 0; i < labels.size(); ++i) {
+                indicesmap[labels[i]].push_back(i);
+            }
+            
+            for (int i = 0; i < diversecenters.rows; ++i) {
+                cv::Vec3f center = diversecenters.at<cv::Vec3f>(i);
+                auto it = std::next(selectedindices.begin(), i);
+                if (it != selectedindices.end()) {
+                    int originallabel = *it;
+                    std::vector<int> &indices = indicesmap[originallabel];
+
+                    // randomly select an index from the vector for this label
+                    std::uniform_int_distribution<> dis(0, indices.size() - 1);
+                    int index = indices[dis(gen)];
+                    QPoint position = QPoint(index % width, index / width) / dpr;
+                    // push
+                    {
+                        QColor color = asColor(center);
+                        // icc profile
+                        ICCTransform* transform = ICCTransform::instance();
+                        QString iccCurrentProfile = iccProfile;
+                        if (!iccCurrentProfile.length()) {
+                            iccCurrentProfile = iccDisplayProfile;
+                        }
+                        if (iccCurrentProfile != iccDisplayProfile) {
+                            color = transform->transformTo(color.rgb(), iccDisplayProfile, iccCurrentProfile);
+                        }
+                        dragcolors.push_back(color);
+                        dragpositions.push_back(rect.topLeft() + position);
+                    }
+                }
+            }
+        }
+    }
+    update();
+}
+
+void
+ColorpickerPrivate::pickClosed()
+{
+    mode = Mode::None;
+    deactivate();
+}
+
+void
+ColorpickerPrivate::dragClosed()
+{
+    if (dragcolors.size()) {
+        for (int i = 0; i < dragcolors.size(); ++i) {
+            QPoint pos = dragpositions.at(i);
+            QRect grab = grabRect(pos);
+            QImage buffer = grabBuffer(grab);
+            QScreen* screen = QGuiApplication::screenAt(pos);
+
+            // paint with device pixel ratio and apply
+            // transforms and fill in user space
+            QColor color = dragcolors.at(i);
+            QRect rect(
+               (grab.width() - aperture) / 2,
+               (grab.height() - aperture) / 2,
+               aperture, aperture
+            );
+            // colors are already converted in drag()
+            QString iccCurrentProfile = iccProfile;
+            if (!iccCurrentProfile.length()) {
+                iccCurrentProfile = iccDisplayProfile;
+            }
+            // state
+            State drag = State{
+              color,
+              rect,
+              magnify,
+              buffer,
+              pos,
+              screen->geometry().topLeft(),
+              displayNumber,
+              iccCurrentProfile,
+              iccDisplayProfile,
+            };
+            states.push_back(drag);
+        }
+        dragcolors.clear();
+        dragpositions.clear();
+        selected = states.count() - 1;
+        view();
+        widget();
+    }
+    mode = Mode::None;
     deactivate();
 }
 
 void
 ColorpickerPrivate::togglePick()
 {
-    if (picker->isVisible())
+    if (mode == Mode::Pick)
     {
+        mode = Mode::None;
         deactivate();
         {
             picker->hide();
@@ -792,6 +1096,7 @@ ColorpickerPrivate::togglePick()
     }
     else
     {
+        mode = Mode::Pick;
         activate();
         {
             // threshold for border color contrast
@@ -810,19 +1115,22 @@ ColorpickerPrivate::togglePick()
 void
 ColorpickerPrivate::toggleDrag()
 {
-    if (drag->isVisible())
+    if (dragger->isVisible())
     {
+        mode = Mode::None;
         deactivate();
         {
-            drag->hide();
+            dragger->hide();
         }
     }
     else
     {
+        mode = Mode::Drag;
         activate();
         {
-            drag->update(cursor);
-            drag->show();
+            dragger->setFocus();
+            dragger->update(cursor);
+            dragger->show();
         }
     }
 }
@@ -888,37 +1196,51 @@ ColorpickerPrivate::copyColor()
 }
 
 void
-ColorpickerPrivate::as8bit()
+ColorpickerPrivate::as8bitValues()
 {
-    format = ColorpickerPrivate::Int8bit;
+    format = Format::Int8bit;
     widget();
 }
 
 void
-ColorpickerPrivate::as10bit()
+ColorpickerPrivate::as10bitValues()
 {
-    format = ColorpickerPrivate::Int10bit;
+    format = Format::Int10bit;
     widget();
 }
 
 void
-ColorpickerPrivate::asFloat()
+ColorpickerPrivate::asFloatValues()
 {
-    format = ColorpickerPrivate::Float;
+    format = Format::Float;
     widget();
 }
 
 void
-ColorpickerPrivate::asHex()
+ColorpickerPrivate::asHexValues()
 {
-    format = ColorpickerPrivate::Hex;
+    format = Format::Hex;
     widget();
 }
 
 void
-ColorpickerPrivate::asPercentage()
+ColorpickerPrivate::asHSVValues()
 {
-    format = ColorpickerPrivate::Percentage;
+    display = Display::Hsv;
+    widget();
+}
+
+void
+ColorpickerPrivate::asHSLValues()
+{
+    display = Display::Hsl;
+    widget();
+}
+
+void
+ColorpickerPrivate::asPercentageValues()
+{
+    format = Format::Percentage;
     widget();
 }
 
@@ -969,7 +1291,7 @@ ColorpickerPrivate::toggleMouseLocation()
 void
 ColorpickerPrivate::iccConvertProfileChanged(int index)
 {
-    iccConvertProfile = ui->iccConvertProfile->itemData(index, Qt::UserRole).value<QString>();
+    iccProfile = ui->iccColorProfile->itemData(index, Qt::UserRole).value<QString>();
     update();
 }
 
@@ -1246,6 +1568,12 @@ ColorpickerPrivate::pdf()
         arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
         arg(datestamp);
     
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QDir resources(QApplication::applicationDirPath() + "/../Resources");
+    QString iccPDFProfile = resources.filePath("sRGB2014.icc"); // build-in Qt profile for PDF
+    
+    // document
     QTextDocument* doc = new QTextDocument;
     doc->setDocumentMargin(10);
     QTextCursor cursor(doc);
@@ -1298,15 +1626,16 @@ ColorpickerPrivate::pdf()
             QPixmap widget(ui->colorWheel->size()*ui->colorWheel->devicePixelRatio());
             widget.setDevicePixelRatio(ui->colorWheel->devicePixelRatio());
             ui->colorWheel->render(&widget);
-            QImage image = widget.toImage();
             QString format = "png";
             
+            // icc profile
+            QImage image = transform->transformTo(widget.toImage(), iccWindowProfile, iccPDFProfile);
             QTextImageFormat imageformat;
             imageformat.setWidth(ui->colorWheel->width()/2);
             imageformat.setHeight(ui->colorWheel->height()/2);
-            imageformat.setName(QString("data:image/%1;base64,%2").
-                arg(QString("%1.%2").arg(rand()).arg(format)).
-                arg(asBase64(image, format).data()));
+            imageformat.setName(QString("data:image/%1;base64,%2")
+                .arg(format)
+                .arg(asBase64(image, format)));
             
             cellcursor.insertImage(imageformat);
         }
@@ -1385,16 +1714,38 @@ ColorpickerPrivate::pdf()
             {
                 QTextTableCell cell = table->cellAt(i+1, 1);
                 QTextCursor cellcursor = cell.firstCursorPosition();
-                QImage image = state.iccPixmap.toImage();
-                QString format = "png";
                 
+                // icc profile
+                QColor color = transform->transformTo(state.color.rgb(), state.iccProfile, iccPDFProfile);
+                QImage image = transform->transformTo(state.image, state.iccProfile, iccPDFProfile);
+                qreal dpr = state.image.devicePixelRatio();
+                const QBrush blackBrush = QBrush(Qt::black);
+                // png
+                QString format = "png";
+                QImage png(image.width(), image.height(), QImage::Format_RGB32); // png format
+                png.setDevicePixelRatio(dpr);
+                {
+                    QPainter p(&png);
+                    p.save();
+                    p.scale(state.magnify, state.magnify);
+                    p.fillRect(QRect(0, 0, image.width(), image.height()), blackBrush);
+                    p.drawImage(0, 0, image);
+                    p.setPen(QPen(Qt::NoPen));
+                    p.fillRect(state.rect, QBrush(color));
+                    QTransform transform = p.transform();
+                    p.restore();
+                    QRect frame = QRect(transform.mapRect(state.rect));
+                    p.setPen(QPen(Qt::gray));
+                    p.setBrush(QBrush(Qt::NoBrush));
+                    p.drawRect(frame);
+                    p.end();
+                }
                 QTextImageFormat imageformat;
                 imageformat.setWidth(64);
                 imageformat.setHeight(64);
-                imageformat.setName(QString("data:image/%1;base64,%2").
-                    arg(QString("%1.%2").arg(rand()).arg(format)).
-                    arg(asBase64(image, format).data()));
-            
+                imageformat.setName(QString("data:image/%1;base64,%2")
+                    .arg(format)
+                    .arg(asBase64(png, format)));
                 cellcursor.insertImage(imageformat);
             }
             // hsv
@@ -1631,6 +1982,32 @@ ColorpickerPrivate::asBase64(const QImage& image, QString format)
     return base64l;
 }
 
+cv::Mat
+ColorpickerPrivate::asBGR(const cv::Mat& mat)
+{
+    cv::Mat matBGR;
+    cv::cvtColor(mat, matBGR, cv::COLOR_RGB2BGR);
+    return matBGR;
+}
+
+cv::Mat
+ColorpickerPrivate::asFloat32(const cv::Mat& mat)
+{
+    cv::Mat mat32F;
+    mat.convertTo(mat32F, CV_32FC3, 1.0 / 255.0);
+    return mat32F;
+}
+
+QColor
+ColorpickerPrivate::asColor(const cv::Vec3f& vec)
+{
+    int r = std::min(std::max(0.0f, vec[2]), 1.0f) * 255;
+    int g = std::min(std::max(0.0f, vec[1]), 1.0f) * 255;
+    int b = std::min(std::max(0.0f, vec[0]), 1.0f) * 255;
+
+    return QColor(r, g, b);
+}
+
 QList<QPair<QColor, QString>>
 ColorpickerPrivate::asColors()
 {
@@ -1675,7 +2052,7 @@ Colorpicker::pickEvent(PickEvent event)
 {
     if (!p->blocked()) {
         p->displayNumber = event.displayNumber;
-        p->iccProfile = event.iccProfile;
+        p->iccDisplayProfile = event.iccProfile;
         p->cursor = event.cursor;
         p->update();
     }
