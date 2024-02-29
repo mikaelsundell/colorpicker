@@ -48,7 +48,6 @@ class ColorwheelPrivate : public QObject
         bool saturationVisible;
         bool labelsVisible;
         int selected;
-        QString iccProfile;
         QList<QPair<QColor, QString>> colors;
         QList<State> states;
         QPointer<Colorwheel> widget;

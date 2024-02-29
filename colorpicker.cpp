@@ -182,7 +182,6 @@ class ColorpickerPrivate : public QObject
                 QPoint origin;
                 int displayNumber;
                 QString iccProfile;
-                QString iccDisplayProfile;
         };
         class Edit
         {
@@ -221,7 +220,6 @@ class ColorpickerPrivate : public QObject
         int magnify;
         int displayNumber;
         QString iccProfile;
-        QString iccWindowProfile;
         QString iccDisplayProfile;
         QPoint cursor;
         bool active;
@@ -276,12 +274,12 @@ ColorpickerPrivate::init()
     editor.reset(new Editor(window.data()));
     editor->setObjectName("editor");
     // resources
-    QDir resources(QApplication::applicationDirPath() + "/../ICCProfiles");
+    QDir iccfiles(QApplication::applicationDirPath() + "/../ICCProfiles");
     ui->iccColorProfile->insertSeparator(ui->iccColorProfile->count());
-    for(QFileInfo resourceFile : resources.entryInfoList( QStringList( "*.icc" )))
+    for(QFileInfo iccfile : iccfiles.entryInfoList( QStringList( "*.icc" )))
     {
         ui->iccColorProfile->addItem
-            ("Convert to " + resourceFile.baseName(), QVariant::fromValue(resourceFile.filePath()));
+            ("Convert to " + iccfile.baseName(), QVariant::fromValue(iccfile.filePath()));
     }
     // actions
     ui->toggleActive->setDefaultAction(ui->active);
@@ -384,6 +382,11 @@ ColorpickerPrivate::init()
     connect(this, &ColorpickerPrivate::readOnly, ui->s, &Label::setReadOnly);
     connect(this, &ColorpickerPrivate::readOnly, ui->v, &Label::setReadOnly);
     size = window->size();
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QDir resources(QApplication::applicationDirPath() + "/../Resources");
+    QString inputProfile = resources.filePath("sRGB2014.icc"); // built-in Qt input profile
+    transform->setInputProfile(inputProfile);
     profile();
     // debug
     #ifdef QT_DEBUG
@@ -422,9 +425,7 @@ ColorpickerPrivate::stylesheet()
                 QColor color = QColor::fromHslF(h / 360.0f, s / 100.0f, l / 100.0f);
                 // icc profile
                 ICCTransform* transform = ICCTransform::instance();
-                QDir resources(QApplication::applicationDirPath() + "/../Resources");
-                QString iccColorProfile = resources.filePath("sRGB2014.icc"); // build-in Qt profile for colors
-                color = transform->transformTo(color.rgb(), iccColorProfile, iccWindowProfile);
+                color = transform->transformTo(color.rgb());
                 QString hsl = QString("hsl(%1, %2%, %3%)")
                                 .arg(color.hue() == -1 ? 0 : color.hue())
                                 .arg(static_cast<int>(color.hslSaturationF() * 100))
@@ -553,8 +554,7 @@ ColorpickerPrivate::update()
           cursor,
           screen->geometry().topLeft(),
           displayNumber,
-          iccCurrentProfile,
-          iccDisplayProfile,
+          iccCurrentProfile
         };
     }
     view();
@@ -571,9 +571,9 @@ ColorpickerPrivate::view()
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     {
-        if (state.iccProfile != iccWindowProfile) {
-            color = transform->transformTo(state.color.rgb(), state.iccProfile, iccWindowProfile);
-            image = transform->transformTo(state.image, state.iccProfile, iccWindowProfile);
+        if (state.iccProfile != transform->outputProfile()) {
+            color = transform->transformTo(state.color.rgb(), state.iccProfile, transform->outputProfile());
+            image = transform->transformTo(state.image, state.iccProfile, transform->outputProfile());
         }
         else {
             color = state.color;
@@ -609,7 +609,7 @@ ColorpickerPrivate::widget()
     {
         ui->display->setText(QString("Display #%1").arg(state.displayNumber));
         QFontMetrics metrics(ui->iccProfile->font());
-        QString text = metrics.elidedText(QFileInfo(state.iccDisplayProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
+        QString text = metrics.elidedText(QFileInfo(iccDisplayProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
         ui->iccProfile->setText(text);
     }
     // rgb
@@ -652,7 +652,13 @@ ColorpickerPrivate::widget()
                 if (!iccCurrentProfile.length()) {
                     iccCurrentProfile = iccDisplayProfile;
                 }
-                for(QColor color : dragcolors) {
+                for(QColor dragcolor : dragcolors) {
+                    QColor color = dragcolor;
+                    // icc profile
+                    ICCTransform* transform = ICCTransform::instance();
+                    if (state.iccProfile != transform->outputProfile()) {
+                        color = transform->transformTo(color.rgb(), iccProfile, transform->outputProfile());
+                    }
                     colors.push_back(QPair<QColor,QString>(color.rgb(), QFileInfo(iccCurrentProfile).baseName()));
                 }
             }
@@ -676,8 +682,8 @@ ColorpickerPrivate::widget()
         
         // icc profile
         ICCTransform* transform = ICCTransform::instance();
-        if (state.iccProfile != iccWindowProfile) {
-            color = transform->transformTo(color.rgb(), state.iccProfile, iccDisplayProfile); // use the current display for picking
+        if (state.iccProfile != transform->outputProfile()) {
+            color = transform->transformTo(color.rgb(), state.iccProfile, iccDisplayProfile); // use display picker display
         }
         // threshold for border color contrast
         if (color.valueF() < 0.2f) {
@@ -698,7 +704,10 @@ ColorpickerPrivate::widget()
 void
 ColorpickerPrivate::profile()
 {
-    iccWindowProfile = mac::grabIccProfileUrl(window->winId());
+    QString outputProfile = mac::grabIccProfileUrl(window->winId());
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    transform->setOutputProfile(outputProfile);
     stylesheet();
 }
 
@@ -908,6 +917,16 @@ ColorpickerPrivate::drag()
     QImage image = mac::grabImage(rect.x(), rect.y(), rect.width(), rect.height(), dragger->winId());
     image = image.convertToFormat(QImage::Format_RGB888); // opencv need 24-bit RGB only
     qreal dpr = image.devicePixelRatio();
+    
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QString iccCurrentProfile = iccProfile;
+    if (!iccCurrentProfile.length()) {
+        iccCurrentProfile = iccDisplayProfile;
+    }
+    if (iccCurrentProfile != iccDisplayProfile) {
+        image = transform->transformTo(image, iccDisplayProfile, iccCurrentProfile);
+    }
     dragcolors.clear();
     dragpositions.clear();
     if (rect.width() > 5 && rect.height() > 5) // cluster limit
@@ -1009,17 +1028,7 @@ ColorpickerPrivate::drag()
                     QPoint position = QPoint(index % width, index / width) / dpr;
                     // push
                     {
-                        QColor color = asColor(center);
-                        // icc profile
-                        ICCTransform* transform = ICCTransform::instance();
-                        QString iccCurrentProfile = iccProfile;
-                        if (!iccCurrentProfile.length()) {
-                            iccCurrentProfile = iccDisplayProfile;
-                        }
-                        if (iccCurrentProfile != iccDisplayProfile) {
-                            color = transform->transformTo(color.rgb(), iccDisplayProfile, iccCurrentProfile);
-                        }
-                        dragcolors.push_back(color);
+                        dragcolors.push_back(asColor(center));
                         dragpositions.push_back(rect.topLeft() + position);
                     }
                 }
@@ -1054,10 +1063,15 @@ ColorpickerPrivate::dragClosed()
                (grab.height() - aperture) / 2,
                aperture, aperture
             );
-            // colors are already converted in drag()
+            // icc profile
+            // colors are already using correct profile
+            ICCTransform* transform = ICCTransform::instance();
             QString iccCurrentProfile = iccProfile;
             if (!iccCurrentProfile.length()) {
                 iccCurrentProfile = iccDisplayProfile;
+            }
+            if (iccCurrentProfile != iccDisplayProfile) {
+                buffer = transform->transformTo(buffer, iccDisplayProfile, iccCurrentProfile);
             }
             // state
             State drag = State{
@@ -1068,8 +1082,7 @@ ColorpickerPrivate::dragClosed()
               pos,
               screen->geometry().topLeft(),
               displayNumber,
-              iccCurrentProfile,
-              iccDisplayProfile,
+              iccCurrentProfile
             };
             states.push_back(drag);
         }
@@ -1568,11 +1581,6 @@ ColorpickerPrivate::pdf()
         arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
         arg(datestamp);
     
-    // icc profile
-    ICCTransform* transform = ICCTransform::instance();
-    QDir resources(QApplication::applicationDirPath() + "/../Resources");
-    QString iccPDFProfile = resources.filePath("sRGB2014.icc"); // build-in Qt profile for PDF
-    
     // document
     QTextDocument* doc = new QTextDocument;
     doc->setDocumentMargin(10);
@@ -1629,7 +1637,8 @@ ColorpickerPrivate::pdf()
             QString format = "png";
             
             // icc profile
-            QImage image = transform->transformTo(widget.toImage(), iccWindowProfile, iccPDFProfile);
+            ICCTransform* transform = ICCTransform::instance();
+            QImage image = transform->transformTo(widget.toImage(), transform->outputProfile(), transform->inputProfile());
             QTextImageFormat imageformat;
             imageformat.setWidth(ui->colorWheel->width()/2);
             imageformat.setHeight(ui->colorWheel->height()/2);
@@ -1716,8 +1725,9 @@ ColorpickerPrivate::pdf()
                 QTextCursor cellcursor = cell.firstCursorPosition();
                 
                 // icc profile
-                QColor color = transform->transformTo(state.color.rgb(), state.iccProfile, iccPDFProfile);
-                QImage image = transform->transformTo(state.image, state.iccProfile, iccPDFProfile);
+                ICCTransform* transform = ICCTransform::instance();
+                QColor color = transform->transformTo(state.color.rgb(), state.iccProfile, transform->inputProfile());
+                QImage image = transform->transformTo(state.image, state.iccProfile, transform->inputProfile());
                 qreal dpr = state.image.devicePixelRatio();
                 const QBrush blackBrush = QBrush(Qt::black);
                 // png
@@ -1770,7 +1780,6 @@ ColorpickerPrivate::pdf()
                 QTextCursor cellcursor = cell.firstCursorPosition();
                 cellcursor.insertHtml(QString("<small><b>Display:</b> #%1%2</small>").arg(state.displayNumber).arg("<br>"));
                 cellcursor.insertHtml(QString("<small><b>Color profile:</b> %1%2</small>").arg(QFileInfo(state.iccProfile).fileName()).arg("<br>"));
-                cellcursor.insertHtml(QString("<small><b>Display profile:</b> %1%2</small>").arg(QFileInfo(state.iccDisplayProfile).fileName()).arg("<br>"));
             }
         }
     }
@@ -2014,8 +2023,14 @@ ColorpickerPrivate::asColors()
     QList<QPair<QColor, QString>> colors;
     for(State state : states)
     {
+        QColor color = state.color;
+        // icc profile
+        ICCTransform* transform = ICCTransform::instance();
+        if (state.iccProfile != transform->outputProfile()) {
+            color = transform->transformTo(color.rgb(), state.iccProfile, transform->outputProfile());
+        }
         colors.push_back(
-            QPair<QColor,QString>(state.color, QFileInfo(state.iccProfile).baseName())
+            QPair<QColor,QString>(color, QFileInfo(state.iccProfile).baseName())
         );
     }
     return colors;

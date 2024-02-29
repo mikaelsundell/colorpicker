@@ -21,8 +21,8 @@ class ICCTransform : public QObject
         QString outputProfile() const;
         QRgb transformTo(QRgb image);
         QImage transformTo(QImage image);
-        QRgb transformTo(QRgb color, QString profile, QString outProfile);
-        QImage transformTo(QImage image, QString profile, QString outProfile);
+        QRgb transformTo(QRgb color, QString profile, QString outputProfile);
+        QImage transformTo(QImage image, QString profile, QString outputProfile);
    
     public Q_SLOTS:
         void setInputProfile(const QString& inputProfile);
