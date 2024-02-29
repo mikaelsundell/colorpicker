@@ -82,8 +82,8 @@ DraggerPrivate::mapToGeometry()
     QSize size = mapToSize();
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
-    int width = baseRect.width();
-    int height = baseRect.height();
+    int width;
+    int height;
     
     QRect screenGeometry = screen->geometry();
     // left

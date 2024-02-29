@@ -343,7 +343,6 @@ ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr)
     QPointF center(w/2.0, h/2.0);
     int diameter = std::min(w, h);
     int radius = diameter/2.0;
-   
     QPixmap colorwheel(w * dpr, h * dpr);
     colorwheel.fill(Qt::transparent);
     colorwheel.setDevicePixelRatio(dpr);

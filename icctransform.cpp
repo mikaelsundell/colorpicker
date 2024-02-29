@@ -186,19 +186,19 @@ ICCTransform::ICCTransform::transformTo(QRgb color)
 }
 
 QImage
-ICCTransform::ICCTransform::transformTo(QImage image)
+ICCTransform::ICCTransform::transformTo(const QImage& image)
 {
     return p->transformTo(image, p->inputProfile, p->outputProfile);
 }
 
 QRgb
-ICCTransform::ICCTransform::transformTo(QRgb color, QString inputProfile, QString outputProfile)
+ICCTransform::ICCTransform::transformTo(QRgb color, const QString& inputProfile, const QString& outputProfile)
 {
     return p->transformTo(color, inputProfile, outputProfile);
 }
 
 QImage
-ICCTransform::transformTo(QImage image, QString inputProfile, QString outputProfile)
+ICCTransform::transformTo(const QImage& image, const QString& inputProfile, const QString& outputProfile)
 {
     return p->transformTo(image, inputProfile, outputProfile);
 }

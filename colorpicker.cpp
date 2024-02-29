@@ -261,6 +261,12 @@ void
 ColorpickerPrivate::init()
 {
     mac::setDarkAppearance();
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QDir resources(QApplication::applicationDirPath() + "/../Resources");
+    QString inputProfile = resources.filePath("sRGB2014.icc"); // built-in Qt input profile
+    transform->setInputProfile(inputProfile);
+    profile();
     // ui
     ui.reset(new Ui_Colorpicker());
     ui->setupUi(window);
@@ -382,12 +388,8 @@ ColorpickerPrivate::init()
     connect(this, &ColorpickerPrivate::readOnly, ui->s, &Label::setReadOnly);
     connect(this, &ColorpickerPrivate::readOnly, ui->v, &Label::setReadOnly);
     size = window->size();
-    // icc profile
-    ICCTransform* transform = ICCTransform::instance();
-    QDir resources(QApplication::applicationDirPath() + "/../Resources");
-    QString inputProfile = resources.filePath("sRGB2014.icc"); // built-in Qt input profile
-    transform->setInputProfile(inputProfile);
-    profile();
+    // stylesheet
+    stylesheet();
     // debug
     #ifdef QT_DEBUG
         QMenu* menu = ui->menubar->addMenu("Debug");
@@ -472,7 +474,6 @@ ColorpickerPrivate::grabBuffer(QRect rect)
     }
     QImage buffer;
     const QBrush blackBrush = QBrush(Qt::black);
-    QScreen* screen = QGuiApplication::screenAt(rect.center());
     buffer = mac::grabImage(x, y, w, h, id);
    
     QRegion geom(x, y, w, h);
@@ -656,8 +657,8 @@ ColorpickerPrivate::widget()
                     QColor color = dragcolor;
                     // icc profile
                     ICCTransform* transform = ICCTransform::instance();
-                    if (state.iccProfile != transform->outputProfile()) {
-                        color = transform->transformTo(color.rgb(), iccProfile, transform->outputProfile());
+                    if (iccCurrentProfile != transform->outputProfile()) {
+                        color = transform->transformTo(color.rgb(), iccCurrentProfile, transform->outputProfile());
                     }
                     colors.push_back(QPair<QColor,QString>(color.rgb(), QFileInfo(iccCurrentProfile).baseName()));
                 }
@@ -708,7 +709,6 @@ ColorpickerPrivate::profile()
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     transform->setOutputProfile(outputProfile);
-    stylesheet();
 }
 
 void
@@ -759,6 +759,7 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
     if (event->type() == QEvent::ScreenChangeInternal) {
         profile();
+        stylesheet();
         if (active) {
             view();
             widget();
@@ -932,7 +933,6 @@ ColorpickerPrivate::drag()
     if (rect.width() > 5 && rect.height() > 5) // cluster limit
     {
         int width = image.width();
-        int height = image.height();
         int colornum = 6;
         {
             cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);

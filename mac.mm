@@ -112,6 +112,7 @@ namespace mac
                 if (iccURLRef) {
                     colorSyncProfile.displayProfileUrl = CFURLCopyFileSystemPath(iccURLRef, kCFURLPOSIXPathStyle);
                 }
+                CFRelease(csProfileRef);
             }
             return colorSyncProfile;
         }
@@ -166,7 +167,11 @@ namespace mac
         CGRect cgRect = (width < 0 || height < 0) ? CGRectInfinite : grabRect.toCGRect();
         const CGDisplayErr err = CGGetDisplaysWithRect(cgRect, maxDisplays, displays, &displayCount);
         if (err || displayCount == 0)
+        {
+            CFRelease(screenWindows);
+            CFRelease(grabWindows);
             return QImage();
+        }
 
         // if the grab size is not specified, set it to be the bounding box of all screens,
         if (width < 0 || height < 0) {

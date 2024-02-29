@@ -15,7 +15,6 @@ Colorpicker::registerEvents()
 {
     static QMutex mutex;
     static QPoint lastpos;
-    NSApplication* app = [NSApplication sharedApplication];
     [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification
                                                       object:nil
                                                        queue:nil

@@ -62,8 +62,8 @@ PickerPrivate::mapToGeometry()
     
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
-    int width = widget->width();
-    int height = widget->height();
+    int width;
+    int height;
     QRect screenGeometry = screen->geometry();
     // left
     if (x < screenGeometry.left()) {
