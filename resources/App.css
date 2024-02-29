@@ -11,7 +11,7 @@ QDialog
     background-color: hsl(220, 30%, 6%);
 }
 
-QDialog
+QDialog#editor
 {
     background-color: hsl(220, 30%, 12%);
     border: 1 solid hsl(216, 7%, 100%);

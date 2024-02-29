@@ -19,8 +19,6 @@ class ICCTransformPrivate : public QObject
         ~ICCTransformPrivate();
         cmsUInt32Number convertFormat(QImage::Format format);
         cmsHTRANSFORM convertTransform(const QString& profile, cmsUInt32Number format, const QString& outProfile);
-        QRgb transformTo(QRgb color);
-        QImage transformTo(QImage image);
         QRgb transformTo(QRgb color, QString profile, QString outProfile);
         QImage transformTo(QImage image, QString profile, QString outProfile);
     
@@ -105,16 +103,6 @@ ICCTransformPrivate::convertTransform(const QString& profile, cmsUInt32Number fo
 }
 
 QRgb
-ICCTransformPrivate::transformTo(QRgb image)
-{
-}
-
-QImage
-ICCTransformPrivate::transformTo(QImage image)
-{
-}
-
-QRgb
 ICCTransformPrivate::transformTo(QRgb color, QString profile, QString outProfile)
 {
     cmsHTRANSFORM transform = convertTransform(
@@ -122,7 +110,7 @@ ICCTransformPrivate::transformTo(QRgb color, QString profile, QString outProfile
     );
     QRgb transformColor;
     cmsDoTransform(transform, &color, &transformColor, 1);
-    return color;
+    return transformColor;
 }
 
 QImage
@@ -194,13 +182,13 @@ ICCTransform::ICCTransform::setOutputProfile(const QString& outputProfile)
 QRgb
 ICCTransform::ICCTransform::transformTo(QRgb color)
 {
-    return p->transformTo(color);
+    return p->transformTo(color, p->inputProfile, p->outputProfile);
 }
 
 QImage
 ICCTransform::ICCTransform::transformTo(QImage image)
 {
-    return p->transformTo(image);
+    return p->transformTo(image, p->inputProfile, p->outputProfile);
 }
 
 QRgb

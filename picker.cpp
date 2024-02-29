@@ -74,7 +74,7 @@ PickerPrivate::mapToGeometry()
     // right
     else if (x + size.width() > screenGeometry.right()) {
         width = size.width() - ((x + size.width()) - screenGeometry.right());
-        x = screenGeometry.right() - width;
+        x = (screenGeometry.right() + 1) - width;
         offset.setX(0);
     }
     else {
@@ -90,7 +90,7 @@ PickerPrivate::mapToGeometry()
     // bottom
     else if (y + size.height() > screenGeometry.bottom()) {
         height = size.height() - ((y + size.height()) - screenGeometry.bottom());
-        y = screenGeometry.bottom() - height;
+        y = (screenGeometry.bottom() + 1) - height;
         offset.setY(0);
     }
     else {
@@ -191,7 +191,8 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
 Picker::Picker(QWidget* parent)
 : QWidget(parent,
   Qt::Dialog |
-  Qt::FramelessWindowHint)
+  Qt::FramelessWindowHint |
+  Qt::NoDropShadowWindowHint)
 , p(new PickerPrivate())
 {
     p->widget = this;

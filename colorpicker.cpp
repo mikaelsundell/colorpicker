@@ -910,7 +910,7 @@ ColorpickerPrivate::drag()
     qreal dpr = image.devicePixelRatio();
     dragcolors.clear();
     dragpositions.clear();
-    if (rect.width() > 1 && rect.height() > 1)
+    if (rect.width() > 5 && rect.height() > 5) // cluster limit
     {
         int width = image.width();
         int height = image.height();
