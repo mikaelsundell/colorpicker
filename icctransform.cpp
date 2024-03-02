@@ -18,14 +18,14 @@ class ICCTransformPrivate : public QObject
         ICCTransformPrivate();
         ~ICCTransformPrivate();
         cmsUInt32Number convertFormat(QImage::Format format);
-        cmsHTRANSFORM convertTransform(const QString& profile, cmsUInt32Number format, const QString& outProfile);
-        QRgb transformTo(QRgb color, QString profile, QString outProfile);
-        QImage transformTo(QImage image, QString profile, QString outProfile);
+        cmsHTRANSFORM convertTransform(const QString& profile, const QString& outProfile, QImage::Format format);
+        QRgb transformTo(QRgb color, const QString& profile, const QString& outProfile);
+        QImage transformTo(QImage image, const QString& profile, const QString& outProfile);
     
     public:
         QString inputProfile;
         QString outputProfile;
-        QMap<QString, QMap<cmsUInt32Number, QMap<QString, cmsHTRANSFORM> > > cache;
+        QMap<QString, QMap<QImage::Format, QMap<QString, cmsHTRANSFORM> > > cache;
         QPointer<ICCTransform> transform;
 };
 
@@ -36,7 +36,7 @@ ICCTransformPrivate::ICCTransformPrivate()
 ICCTransformPrivate::~ICCTransformPrivate()
 {
     for(QString profile : cache.keys()) {
-        for (cmsUInt32Number format : cache[profile].keys()) {
+        for (QImage::Format format : cache[profile].keys()) {
             for (QString outputProfile : cache[profile][format].keys()) {
                 cmsDeleteTransform(cache[profile][format][outputProfile]);
             }
@@ -80,11 +80,11 @@ ICCTransformPrivate::convertFormat(QImage::Format format)
 }
 
 cmsHTRANSFORM
-ICCTransformPrivate::convertTransform(const QString& profile, cmsUInt32Number format, const QString& outProfile)
+ICCTransformPrivate::convertTransform(const QString& profile, const QString& outProfile, QImage::Format format)
 {
     cmsHTRANSFORM transform = nullptr;
     if (!cache.contains(profile)) {
-        cache.insert(profile, QMap<cmsUInt32Number, QMap<QString, cmsHTRANSFORM> >());
+        cache.insert(profile, QMap<QImage::Format, QMap<QString, cmsHTRANSFORM> >());
     }
     if (!cache[profile].contains(format)) {
         cache[profile].insert(format, QMap<QString, cmsHTRANSFORM>());
@@ -92,9 +92,10 @@ ICCTransformPrivate::convertTransform(const QString& profile, cmsUInt32Number fo
     if (!cache[profile][format].contains(outProfile)) {
         cmsHPROFILE cmsProfile = cmsOpenProfileFromFile(profile.toLocal8Bit().constData(), "r");
         cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(outProfile.toLocal8Bit().constData(), "r");
+        int flags = (format == QImage::Format_ARGB32_Premultiplied ? cmsFLAGS_COPY_ALPHA : 0);
         cache[profile][format].insert(
             outProfile,
-            cmsCreateTransform(cmsProfile, format, cmsDisplayProfile, format, INTENT_PERCEPTUAL, 0)
+                cmsCreateTransform(cmsProfile, convertFormat(format), cmsDisplayProfile, convertFormat(format), INTENT_PERCEPTUAL, flags)
         );
         cmsCloseProfile(cmsProfile);
         cmsCloseProfile(cmsDisplayProfile);
@@ -103,10 +104,10 @@ ICCTransformPrivate::convertTransform(const QString& profile, cmsUInt32Number fo
 }
 
 QRgb
-ICCTransformPrivate::transformTo(QRgb color, QString profile, QString outProfile)
+ICCTransformPrivate::transformTo(QRgb color, const QString& profile, const QString& outProfile)
 {
     cmsHTRANSFORM transform = convertTransform(
-        profile, convertFormat(QImage::Format_RGB32), outProfile
+        profile, outProfile, QImage::Format_RGB32
     );
     QRgb transformColor;
     cmsDoTransform(transform, &color, &transformColor, 1);
@@ -114,9 +115,9 @@ ICCTransformPrivate::transformTo(QRgb color, QString profile, QString outProfile
 }
 
 QImage
-ICCTransformPrivate::transformTo(QImage image, QString profile, QString outProfile)
+ICCTransformPrivate::transformTo(QImage image, const QString& profile, const QString& outProfile)
 {
-    cmsHTRANSFORM transform = convertTransform(profile, convertFormat(image.format()), outProfile);
+    cmsHTRANSFORM transform = convertTransform(profile, outProfile, image.format());
     QImage transformimage(image.width(), image.height(), image.format());
     cmsDoTransformLineStride(
         transform,

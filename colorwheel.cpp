@@ -47,7 +47,7 @@ class ColorwheelPrivate : public QObject
         bool iqlineVisible;
         bool saturationVisible;
         bool labelsVisible;
-        int selected;
+        qsizetype selected;
         QList<QPair<QColor, QString>> colors;
         QList<State> states;
         QPointer<Colorwheel> widget;
@@ -598,7 +598,7 @@ Colorwheel::setLabelsVisible(bool visible)
     update();
 }
 
-int
+qsizetype
 Colorwheel::selected() const
 {
     return p->selected;
@@ -611,7 +611,7 @@ Colorwheel::hasSelection() const
 }
 
 void
-Colorwheel::setSelected(int selected)
+Colorwheel::setSelected(qsizetype selected)
 {
     p->selected = selected;
     p->update();
