@@ -76,6 +76,9 @@
          </property>
          <item>
           <widget class="QToolButton" name="toggleDisplay">
+           <property name="toolTip">
+            <string>Shide or hide display area</string>
+           </property>
            <property name="icon">
             <iconset resource="colorpicker.qrc">
              <normaloff>:/icons/resources/Collapse.png</normaloff>:/icons/resources/Collapse.png</iconset>
@@ -299,7 +302,7 @@
                   <item>
                    <widget class="QToolButton" name="togglePin">
                     <property name="toolTip">
-                     <string>Toggle pin</string>
+                     <string>Pin on top</string>
                     </property>
                     <property name="text">
                      <string/>
@@ -335,10 +338,10 @@
                   <item>
                    <widget class="QToolButton" name="toggleActive">
                     <property name="toolTip">
-                     <string>Toogle active</string>
+                     <string>Turn on</string>
                     </property>
                     <property name="text">
-                     <string>Active</string>
+                     <string>Turn on</string>
                     </property>
                     <property name="icon">
                      <iconset resource="colorpicker.qrc">
@@ -371,6 +374,9 @@
                  <font>
                   <pointsize>12</pointsize>
                  </font>
+                </property>
+                <property name="toolTip">
+                 <string>Change capture color space</string>
                 </property>
                 <item>
                  <property name="text">
@@ -568,6 +574,9 @@
             </item>
             <item>
              <widget class="QSlider" name="aperture">
+              <property name="toolTip">
+               <string>Change aperture size</string>
+              </property>
               <property name="minimum">
                <number>1</number>
               </property>
@@ -718,6 +727,9 @@
          </property>
          <item>
           <widget class="QToolButton" name="toggleColors">
+           <property name="toolTip">
+            <string>Show or hide colors area</string>
+           </property>
            <property name="text">
             <string>...</string>
            </property>
@@ -837,6 +849,9 @@
                   <height>0</height>
                  </size>
                 </property>
+                <property name="toolTip">
+                 <string>Change size of markers</string>
+                </property>
                 <property name="minimum">
                  <number>1</number>
                 </property>
@@ -907,6 +922,9 @@
               </property>
               <item>
                <widget class="QSlider" name="backgroundOpacity">
+                <property name="toolTip">
+                 <string>Change background opacity</string>
+                </property>
                 <property name="minimum">
                  <number>1</number>
                 </property>
@@ -946,7 +964,7 @@
               <item>
                <widget class="QToolButton" name="toggleClear">
                 <property name="toolTip">
-                 <string>Clear colors</string>
+                 <string>Remove all colors</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -982,7 +1000,7 @@
               <item>
                <widget class="QToolButton" name="toggleDrag">
                 <property name="toolTip">
-                 <string>Capture colors from drag</string>
+                 <string>Capture colors with a sweep</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1012,7 +1030,7 @@
               <item>
                <widget class="QToolButton" name="togglePick">
                 <property name="toolTip">
-                 <string>Capture color from picker</string>
+                 <string>Capture color with a picker</string>
                 </property>
                 <property name="text">
                  <string>...</string>
@@ -1083,6 +1101,9 @@
             </property>
             <item>
              <widget class="QSlider" name="angle">
+              <property name="toolTip">
+               <string>Rotate color wheel</string>
+              </property>
               <property name="maximum">
                <number>100</number>
               </property>
@@ -1139,6 +1160,9 @@
                 <bold>true</bold>
                </font>
               </property>
+              <property name="toolTip">
+               <string>Turn on IQ line</string>
+              </property>
               <property name="text">
                <string>IQ</string>
               </property>
@@ -1155,6 +1179,9 @@
                 <bold>true</bold>
                </font>
               </property>
+              <property name="toolTip">
+               <string>Multiply saturation by 2</string>
+              </property>
               <property name="text">
                <string>2x</string>
               </property>
@@ -1167,6 +1194,9 @@
                 <pointsize>10</pointsize>
                 <bold>true</bold>
                </font>
+              </property>
+              <property name="toolTip">
+               <string>Turn on saturation labels</string>
               </property>
               <property name="text">
                <string>Saturation</string>
@@ -1183,6 +1213,9 @@
                 <pointsize>10</pointsize>
                 <bold>true</bold>
                </font>
+              </property>
+              <property name="toolTip">
+               <string>Turn on color labels</string>
               </property>
               <property name="text">
                <string>Labels</string>
@@ -1205,7 +1238,7 @@
             <item>
              <widget class="QToolButton" name="pdf">
               <property name="toolTip">
-               <string>Open pdf</string>
+               <string>Show PDF for colors</string>
               </property>
               <property name="text">
                <string/>
@@ -1336,7 +1369,7 @@
      <normaloff>:/icons/resources/Active.png</normaloff>:/icons/resources/Active.png</iconset>
    </property>
    <property name="text">
-    <string>Active</string>
+    <string>Turn on</string>
    </property>
    <property name="shortcut">
     <string>Space</string>
@@ -1559,7 +1592,7 @@
   </action>
   <action name="drag">
    <property name="text">
-    <string>Capture from drag</string>
+    <string>Capture from sweep</string>
    </property>
    <property name="shortcut">
     <string>Shift+Return</string>

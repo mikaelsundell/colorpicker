@@ -49,7 +49,6 @@ PickerPrivate::init()
 {
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->resize(mapToSize());
-    widget->setCursor(Qt::BlankCursor);
     widget->installEventFilter(this);
     mac::setTopLevel(widget->winId());
 }
@@ -151,7 +150,11 @@ PickerPrivate::paintPicker()
 bool
 PickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
+    if (event->type() == QEvent::Show) {
+        mac::hideCursor();
+    }
     if (event->type() == QEvent::Hide) {
+        mac::showCursor();
         widget->closed();
     }
     if (event->type() == QEvent::KeyPress) {

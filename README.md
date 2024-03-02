@@ -11,15 +11,15 @@ Colorpicker is a versatile Mac application designed to select and capture colors
 
 |  Download        | Description |
 | ----------------| ----------- |
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorman v0.0.10](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.10/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v0.0.10/Colorpicker_macOS12_arm64_release.dmg)
-
+|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.0](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.0/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.0/Colorpicker_macOS12_arm64_release.dmg)
+|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.0](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.0/Colorpicker_macOS12_arm64_release.dmg) | [Intel x86_64 macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.0/Colorpicker_macOS12_arm64_release.dmg)
 
 Documentation
 -------------
 
 **How to use**
 
-Colorpicker needs to be active to pick colors. The app is always active when launched but can be activated using `View > Active [A]`. Once active the application will show the current color interactivly in a hsl color wheel. Use the color picker button or `Edit > Pick [P]` to start. Colors will start to appear on the color wheel. To end the color pick tool use either `Right mouse button` or `Esc` to end. After color pick app will no longer be active, colors can now be checked by clicking on the in the color wheel.
+Colorpicker needs to be active to pick colors. The app is always active when launched but can be activated using `View > Turn on [space]`. Once active the application will show the current color interactivly in a hsl color wheel. Use the color picker button or `Edit > Capture from pick [Enter]` to start. Colors will start to appear on the color wheel. To end the color pick tool use either `Right mouse button` or `Esc` to end. After color pick app will no longer be active, colors can now be checked by clicking on the in the color wheel.
 
 **Display profile**
 

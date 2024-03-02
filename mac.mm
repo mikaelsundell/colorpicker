@@ -143,6 +143,23 @@ namespace mac
         [window setLevel:NSStatusWindowLevel];
     }
 
+    void hideCursor() {
+        // needed to get rid of cursor completely, even when magnifyed
+        NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
+        [image lockFocus];
+        [[NSColor clearColor] set];
+        NSRectFill(NSMakeRect(0, 0, 1, 1));
+        [image unlockFocus];
+        NSCursor* cursor = [[NSCursor alloc] initWithImage:image hotSpot:NSMakePoint(0, 0)];
+        [cursor set];
+        [NSCursor hide];
+    }
+
+    void showCursor() {
+        [NSCursor unhide];
+        [[NSCursor arrowCursor] set];
+    }
+
     QImage grabImage(int x, int y, int width, int height, WId windowId)
     {
         CGWindowID windowIdToExcude = 0;

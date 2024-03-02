@@ -1694,7 +1694,11 @@ ColorpickerPrivate::pdf()
             QTextTableCell cell = table->cellAt(0, 2);
             QTextCursor cellcursor = cell.firstCursorPosition();
             cell.setFormat(headerformat);
-            cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>HSV</h5>");
+            if (display == Display::Hsv) {
+                cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>HSV</h5>");
+            } else {
+                cellcursor.insertHtml("<h5 style='color:rgb(255, 255, 255)'>HSL</h5>");
+            }
         }
         // rgb
         {
@@ -1758,13 +1762,19 @@ ColorpickerPrivate::pdf()
                     .arg(asBase64(png, format)));
                 cellcursor.insertImage(imageformat);
             }
-            // hsv
+            // hsv and hsl
             {
                 QTextTableCell cell = table->cellAt(i+1, 2);
                 QTextCursor cellcursor = cell.firstCursorPosition();
-                cellcursor.insertHtml(QString("<small><b>H:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::H)).arg("<br>"));
-                cellcursor.insertHtml(QString("<small><b>S:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::S)).arg("<br>"));
-                cellcursor.insertHtml(QString("<small><b>V:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::V)).arg("<br>"));
+                if (display == Display::Hsv) {
+                    cellcursor.insertHtml(QString("<small><b>H:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::H)).arg("<br>"));
+                    cellcursor.insertHtml(QString("<small><b>S:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::S)).arg("<br>"));
+                    cellcursor.insertHtml(QString("<small><b>V:</b> %1%2</small>").arg(formatHsv(state.color, HsvChannel::V)).arg("<br>"));
+                } else {
+                    cellcursor.insertHtml(QString("<small><b>H:</b> %1%2</small>").arg(formatHsl(state.color, HslChannel::HslH)).arg("<br>"));
+                    cellcursor.insertHtml(QString("<small><b>S:</b> %1%2</small>").arg(formatHsl(state.color, HslChannel::HslS)).arg("<br>"));
+                    cellcursor.insertHtml(QString("<small><b>L:</b> %1%2</small>").arg(formatHsl(state.color, HslChannel::HslL)).arg("<br>"));
+                }
             }
             // rgb
             {

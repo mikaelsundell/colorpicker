@@ -34,8 +34,8 @@ class DraggerPrivate : public QObject
             QRect unitedRect;
             bool dragging;
         };
+        QPixmap paintCross();
         QPixmap paintSweep();
-        QPixmap buffer;
         QColor borderColor;
         QPoint position;
         QSize baseSize;
@@ -51,7 +51,7 @@ DraggerPrivate::DraggerPrivate()
 : borderColor(Qt::white)
 , baseSize(256, 256)
 , baseRect(0, 0, 256, 256)
-, scale(1.0)
+, scale(0.5)
 {
 }
 
@@ -60,8 +60,6 @@ DraggerPrivate::init()
 {
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->resize(mapToSize());
-    widget->setCursor(Qt::CrossCursor);
-    widget->setContextMenuPolicy(Qt::NoContextMenu);
     widget->installEventFilter(this);
     mac::setTopLevel(widget->winId());
     deactivate(); // need to be initialized
@@ -144,22 +142,55 @@ DraggerPrivate::dragRect() const
 }
 
 QPixmap
+DraggerPrivate::paintCross()
+{
+    QScreen* screen = QGuiApplication::screenAt(position);
+    qreal dpr = screen->devicePixelRatio();
+    QPoint cursor = widget->mapFromGlobal(position);
+    // size
+    QSize size = mapToSize();
+    // pixmap
+    QPixmap pixmap = QPixmap(size * dpr);
+    pixmap.fill(Qt::transparent);
+    pixmap.setDevicePixelRatio(dpr);
+    // painter
+    QPainter p(&pixmap);
+    qreal diameter = std::min(size.width(), size.height()) * scale;
+    qreal radius = diameter/2.0;
+    QBrush brush = QBrush(borderColor);
+    // cross
+    p.translate(cursor.x(), cursor.y());
+    {
+        qreal length = qMax(radius * 0.1, 0.0);
+        qreal origin = length * 0.4;
+        p.setPen(QPen(brush, 2));
+        p.drawLine(origin, 0, length, 0);
+        p.drawLine(-length, 0, -origin, 0);
+        p.drawLine(0, length, 0, origin);
+        p.drawLine(0, -origin, 0, -length);
+    }
+    p.end();
+    return pixmap;
+}
+
+
+QPixmap
 DraggerPrivate::paintSweep()
 {
     QScreen* screen = QGuiApplication::screenAt(position);
     qreal dpr = screen->devicePixelRatio();
     // size
     QSize size = state.unitedRect.size();
-    // buffer
+    // pixmap
     QPixmap pixmap = QPixmap(size * dpr);
     pixmap.fill(Qt::transparent);
     pixmap.setDevicePixelRatio(dpr);
-    // cross
+    // sweep
     QPainter p(&pixmap);
     {
         QPoint from = widget->mapFromGlobal(state.position);
         QPoint to = widget->mapFromGlobal(position);
-        // fill
+        // rectangle
         {
             p.save();
             QRect rectangle(from, to);
@@ -172,6 +203,25 @@ DraggerPrivate::paintSweep()
             p.drawRect(rectangle);
             p.restore();
         }
+        // cross
+        {
+            size = mapToSize();
+            QPoint cursor = widget->mapFromGlobal(position);
+            qreal diameter = std::min(size.width(), size.height()) * scale;
+            qreal radius = diameter/2.0;
+            QBrush brush = QBrush(borderColor);
+            // cross
+            p.translate(cursor.x(), cursor.y());
+            {
+                qreal length = qMax(radius * 0.1, 0.0);
+                qreal origin = length * 0.4;
+                p.setPen(QPen(brush, 2));
+                p.drawLine(origin, 0, length, 0);
+                p.drawLine(-length, 0, -origin, 0);
+                p.drawLine(0, length, 0, origin);
+                p.drawLine(0, -origin, 0, -length);
+            }
+        }
     }
     p.end();
     return pixmap;
@@ -180,7 +230,11 @@ DraggerPrivate::paintSweep()
 bool
 DraggerPrivate::eventFilter(QObject* object, QEvent* event)
 {
+    if (event->type() == QEvent::Show) {
+        mac::hideCursor();
+    }
     if (event->type() == QEvent::Hide) {
+        mac::showCursor();
         widget->closed();
     }
     if (event->type() == QEvent::KeyPress) {
@@ -192,7 +246,6 @@ DraggerPrivate::eventFilter(QObject* object, QEvent* event)
             return true;
         }
     }
-    
     if (event->type() == QEvent::QEvent::MouseButtonPress) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
@@ -207,7 +260,6 @@ DraggerPrivate::eventFilter(QObject* object, QEvent* event)
         }
         return true;
     }
-    
     if (event->type() == QEvent::QEvent::MouseButtonRelease) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
@@ -268,6 +320,8 @@ Dragger::paintEvent(QPaintEvent* event)
     painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor update
     if (p->state.dragging) {
         painter.drawPixmap(0, 0, p->paintSweep());
+    } else {
+        painter.drawPixmap(0, 0, p->paintCross());
     }
     painter.end();
 }

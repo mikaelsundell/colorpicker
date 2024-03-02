@@ -13,6 +13,8 @@ namespace mac
     };
     void setDarkAppearance();
     void setTopLevel(WId wid);
+    void hideCursor();
+    void showCursor();
     QImage grabImage(int x, int y, int width, int height, WId windowId);
     IccProfile grabIccProfile(int x, int y);
     IccProfile grabIccProfile(WId wid);
