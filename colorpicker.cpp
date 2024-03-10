@@ -832,16 +832,33 @@ ColorpickerPrivate::blank()
 {
     qreal dpr = window->devicePixelRatio();
     const QBrush blackBrush = QBrush(Qt::black);
-    // pixmap
-    QPixmap pixmap(width * dpr, height * dpr);
-    pixmap.setDevicePixelRatio(dpr);
+    // image
+    QImage image(width * dpr, height * dpr, QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(dpr);
     {
-        QPainter p(&pixmap);
+        QPainter p(&image);
         p.fillRect(QRect(0, 0, width, height), blackBrush);
         p.end();
     }
-    ui->view->setPixmap(pixmap);
     QColor color = Qt::black;
+    // icc profile
+    QString iccCurrentProfile = iccProfile;
+    if (!iccCurrentProfile.length()) {
+        iccCurrentProfile = iccCursorProfile;
+    }
+    // state
+    state = State{
+      color,
+      QRect(),
+      magnify,
+      image,
+      QPoint(),
+      QPoint(),
+      displayNumber,
+      iccCurrentProfile
+    };
+    
+    ui->view->setPixmap(QPixmap::fromImage(image));
     // rgb
     {
         ui->r->setText(QString("%1").arg(formatRgb(color, RgbChannel::R)));
@@ -1050,7 +1067,6 @@ ColorpickerPrivate::toggleActive(bool checked)
     }
     active = checked;
     if (selected >= 0) {
-
         ui->colorWheel->setSelected(selected);
         state = states[selected]; // restore state
         view();
