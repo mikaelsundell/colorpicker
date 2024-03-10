@@ -4,7 +4,6 @@
  */
 
 /* Top-level widgets */
-
 QMainWindow,
 QDialog
 {
@@ -17,8 +16,46 @@ QDialog#editor
     border: 1 solid hsl(216, 7%, 100%);
 }
 
-/* QWidgets widgets */
+/* QCheckBox widgets */
+QCheckBox {
 
+    spacing: 5px;
+}
+
+QCheckBox::indicator {
+    background-color: hsl(220, 8%, 15%);
+    width: 20px;
+    height: 20px;
+}
+
+QCheckBox::indicator:checked {
+    image: url(":/icons/resources/Checkbox.png");
+}
+
+/* QComboBox widgets */
+QComboBox
+{
+    background-color: hsl(220, 8%, 15%);
+    padding: 4px;
+    padding-left: 10px;
+    border-radius: 0px;
+}
+
+QComboBox::down-arrow {
+    image: url(":/icons/resources/Dropdown.png");
+    width: 16px;
+    height: 16px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 16px;
+    right: 4px;
+    border: 0px;
+}
+
+/* QWidgets widgets */
 QWidget#displayBar
 {
     background-color: hsl(220, 30%, 12%);
@@ -76,14 +113,12 @@ QWidget:checked#togglePin
 }
 
 /* QFrame widgets */
-
 QFrame#view
 {
     border: 1 solid hsl(216,7,29);
 }
 
 /* QToolButton widgets */
-
 QToolButton#toggleActive
 {
     padding: 2px;
@@ -107,7 +142,6 @@ QToolButton#toggleColors
 }
 
 /* QSlider widgets */
-
 QSlider::groove:horizontal
 {
     height: 5px;

@@ -1172,6 +1172,22 @@
              </widget>
             </item>
             <item>
+             <spacer name="horizontalSpacer_10">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>4</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
              <widget class="QCheckBox" name="zoom">
               <property name="font">
                <font>
@@ -1186,6 +1202,22 @@
                <string>2x</string>
               </property>
              </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_11">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>4</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <widget class="QCheckBox" name="saturation">
@@ -1205,6 +1237,22 @@
                <bool>false</bool>
               </property>
              </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>4</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <widget class="QCheckBox" name="labels">
@@ -1296,9 +1344,17 @@
      <addaction name="magnify4x"/>
      <addaction name="magnify5x"/>
     </widget>
+    <widget class="QMenu" name="colorValues">
+     <property name="title">
+      <string>Color values</string>
+     </property>
+     <addaction name="next"/>
+     <addaction name="previous"/>
+    </widget>
     <addaction name="active"/>
     <addaction name="pin"/>
     <addaction name="separator"/>
+    <addaction name="colorValues"/>
     <addaction name="displayValues"/>
     <addaction name="separator"/>
     <addaction name="magnify"/>
@@ -1615,6 +1671,22 @@
    </property>
    <property name="text">
     <string>as HSL</string>
+   </property>
+  </action>
+  <action name="next">
+   <property name="text">
+    <string>Next</string>
+   </property>
+   <property name="shortcut">
+    <string>Right</string>
+   </property>
+  </action>
+  <action name="previous">
+   <property name="text">
+    <string>Previous</string>
+   </property>
+   <property name="shortcut">
+    <string>Left</string>
    </property>
   </action>
  </widget>

@@ -24,7 +24,6 @@ class PickerPrivate : public QObject
     public:
         void paintPicker();
         QPixmap buffer;
-        QColor borderColor;
         QColor color;
         QPoint offset;
         QPoint position;
@@ -35,8 +34,7 @@ class PickerPrivate : public QObject
 };
 
 PickerPrivate::PickerPrivate()
-: borderColor(Qt::black)
-, color(Qt::lightGray)
+: color(Qt::white)
 , offset(QPoint(0.0, 0.0))
 , baseSize(256, 256)
 , scale(0.4)
@@ -119,16 +117,26 @@ PickerPrivate::paintPicker()
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
-    // painter
+    
     QPainter p(&buffer);
     qreal diameter = std::min(size.width(), size.height()) * scale;
-    qreal radius = diameter/2.0;
-    QPointF center(size.width()/2.0, size.height()/2.0);
+    qreal radius = diameter / 2.0;
+    QPointF center(size.width() / 2.0, size.height() / 2.0);
     QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
-    QBrush brush = QBrush(borderColor);
+    // shadow
+    {
+        QColor shadow = Qt::black;
+        shadow.setAlpha(80);
+        QPointF offset(2, 2);
+        p.setRenderHint(QPainter::Antialiasing);
+        QRectF ellipse = rect.translated(offset);
+        p.setBrush(shadow);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(ellipse);
+    }
     // ellipse
     {
-        p.setRenderHint(QPainter::Antialiasing);
+        QBrush brush(Qt::white);
         p.setPen(QPen(brush, 1.0));
         p.setBrush(QBrush(color));
         p.drawEllipse(rect);
@@ -136,8 +144,9 @@ PickerPrivate::paintPicker()
     // cross
     p.translate(center.x(), center.y());
     {
-        qreal length = qMax(radius * 0.2, 0.0);
+        qreal length = qMax(radius * 0.4, 0.0);
         qreal origin = length * 0.2;
+        QBrush brush = QBrush(Qt::white);
         p.setPen(QPen(brush, 1));
         p.drawLine(origin, 0, length, 0);
         p.drawLine(-length, 0, -origin, 0);
@@ -208,12 +217,6 @@ Picker::~Picker()
 }
 
 QColor
-Picker::borderColor()
-{
-    return p->borderColor;
-}
-
-QColor
 Picker::color()
 {
     return p->color;
@@ -226,15 +229,6 @@ Picker::paintEvent(QPaintEvent* event)
     painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor update
     painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
     painter.end();
-}
-
-void
-Picker::setBorderColor(const QColor& color)
-{
-    if (p->borderColor != color) {
-        p->borderColor = color;
-        p->paintPicker();
-    }
 }
 
 void

@@ -3,6 +3,7 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #include "colorwheel.h"
+#include "icctransform.h"
 
 #include <QWidget>
 #include <QPainter>
@@ -21,6 +22,9 @@ class ColorwheelPrivate : public QObject
         QColor mapToColor(const QPoint& point) const;
         QColor mapToColor(const QColor& color, const QPoint& point) const;
         qreal mapToDegrees(qreal radians) const;
+    
+    public Q_SLOTS:
+        void outputProfileChanged(const QString& outputProfile);
     
     public:
         class State
@@ -48,7 +52,7 @@ class ColorwheelPrivate : public QObject
         bool saturationVisible;
         bool labelsVisible;
         qsizetype selected;
-        QList<QPair<QColor, QString>> colors;
+        QList<QPair<QColor, QPair<QString, QString>>> colors;
         QList<State> states;
         QPointer<Colorwheel> widget;
 };
@@ -75,6 +79,10 @@ ColorwheelPrivate::init()
 {
     colorwheel = paintColorwheel(width, height, 2.0); // hidpi
     colorring = paintColorring(width, height, 2.0); // hidpi
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    // connect
+    connect(transform, &ICCTransform::outputProfileChanged, this, &ColorwheelPrivate::outputProfileChanged);
 }
 
 void
@@ -91,7 +99,7 @@ ColorwheelPrivate::update()
     qreal radius = diameter/2.0;
     QPointF center(widget->width()/2.0, widget->height()/2.0);
     QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
-    p.fillRect(widget->rect(), widget->palette().base());
+    p.fillRect(widget->rect(), Qt::transparent);
     p.setRenderHint(QPainter::SmoothPixmapTransform);
     p.translate(center.x(), center.y());
     p.rotate(angle * 360 + offsetFactor);
@@ -126,7 +134,7 @@ ColorwheelPrivate::update()
     // selection
     bool hasselection = selected > -1 ? true : false;
     if (hasselection)
-        selectedlabel = colors[selected].second;
+        selectedlabel = colors[selected].second.first;
     // angles
     {
         p.save();
@@ -188,10 +196,11 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // lines
-    for (QPair<QColor,QString> pair : colors)
+    for (QPair<QColor,QPair<QString, QString>> pair : colors)
     {
         QColor color = pair.first;
-        QString label = pair.second;
+        QString label = pair.second.first;
+        QString filename = pair.second.second;
         // painter
         {
             p.save();
@@ -221,10 +230,11 @@ ColorwheelPrivate::update()
         p.restore();
     }
     // colors
-    for (QPair<QColor,QString> pair : colors)
+    for (QPair<QColor,QPair<QString, QString>> pair : colors)
     {
         QColor color = pair.first;
-        QString label = pair.second;
+        QString label = pair.second.first;
+        QString filename = pair.second.second;
         // paint
         {
             p.save();
@@ -240,7 +250,13 @@ ColorwheelPrivate::update()
             
             // ellipse
             {
-                p.setBrush(QBrush(color));
+                QColor mapped = color;
+                // icc profile
+                ICCTransform* transform = ICCTransform::instance();
+                if (filename != transform->outputProfile()) {
+                    mapped = transform->map(mapped.rgb(), filename, transform->outputProfile());
+                }
+                p.setBrush(QBrush(mapped)); // we draw the mapped color to output profile
                 p.setPen(QPen(brush, stroke));
                 QRectF rect(-ellipse/2 + length, -ellipse/2, ellipse, ellipse);
                 p.drawEllipse(rect);
@@ -274,6 +290,9 @@ ColorwheelPrivate::update()
                 p.resetTransform();
                 QFontMetrics metrics(p.font());
                 QString text = QString("%1").arg(label);
+                if (text.length() > 20) { // limit label lengths
+                    text = text.left(20) + "...";
+                }
                 QRectF bounding = metrics.boundingRect(text);
                 QPointF pos = transform.map(QPointF(length, 0));
                 QRectF rect = QRectF(-ellipse/2+length, -ellipse/2, ellipse, ellipse);
@@ -285,18 +304,16 @@ ColorwheelPrivate::update()
                 p.setOpacity(0.5);
                 p.fillPath(path, widget->palette().base());
                 p.restore();
-                
                 QFont font = p.font();
                 font.setPointSizeF(font.pointSizeF() * 0.75);
                 p.setFont(font);
-                
                 p.drawText(bounding, Qt::AlignCenter, text);
                 p.restore();
             }
             p.restore();
         }
     }
-    // iq saturation
+    // saturation
     if (saturationVisible)
     {
         p.save();
@@ -310,26 +327,36 @@ ColorwheelPrivate::update()
             0.5,
             0.75
         };
-        for (qreal value : values) {
+        for (qreal value : values) {            
+            // ellipse
             p.save();
-            QFontMetrics metrics(p.font());
-            QString text = QString("%1%").arg(value * 100 * zoomFactor);
-            QRect rect = metrics.boundingRect(text);
-            qreal length = radius * value;
-            QPointF pos = transform.map(QPointF(length, 0));
-            rect.moveTo(pos.toPoint());
-            QPainterPath path;
-            path.addRoundedRect(rect, 4, 4);
-            p.save();
-            p.setOpacity(0.5);
-            p.fillPath(path, widget->palette().base());
+            {
+                qreal length = radius * value;
+                QRectF rect(center.x() - length, center.y() - length, length * 2, length * 2);
+                p.setOpacity(0.5);
+                p.drawEllipse(rect);
+            }
             p.restore();
-            
-            QFont font = p.font();
-            font.setPointSizeF(font.pointSizeF() * 0.75);
-            p.setFont(font);
-            
-            p.drawText(rect, Qt::AlignCenter, text);
+            // labels
+            p.save();
+            {
+                QFontMetrics metrics(p.font());
+                QString text = QString("%1%").arg(value * 100 * zoomFactor);
+                QRect rect = metrics.boundingRect(text);
+                qreal length = radius * value;
+                QPointF pos = transform.map(QPointF(length, 0));
+                rect.moveTo(pos.toPoint());
+                QPainterPath path;
+                path.addRoundedRect(rect, 4, 4);
+                p.save();
+                p.setOpacity(0.5);
+                p.fillPath(path, widget->palette().base());
+                p.restore();
+                QFont font = p.font();
+                font.setPointSizeF(font.pointSizeF() * 0.75);
+                p.setFont(font);
+                p.drawText(rect, Qt::AlignCenter, text);
+            }
             p.restore();
         }
         p.restore();
@@ -451,6 +478,15 @@ ColorwheelPrivate::mapToDegrees(qreal radians) const
     return degree;
 }
 
+void
+ColorwheelPrivate::outputProfileChanged(const QString& outputProfile)
+{
+    qDebug() << "profile changed: " << outputProfile;
+    
+    update();
+    widget->update();
+}
+
 #include "colorwheel.moc"
 
 Colorwheel::Colorwheel(QWidget* parent)
@@ -500,14 +536,14 @@ Colorwheel::backgroundOpacity() const
     return p->backgroundOpacity;
 }
 
-QList<QPair<QColor,QString>>
+QList<QPair<QColor,QPair<QString,QString>>>
 Colorwheel::colors()
 {
     return p->colors;
 }
 
 void
-Colorwheel::setColors(const QList<QPair<QColor,QString>> colors, bool selected)
+Colorwheel::setColors(const QList<QPair<QColor,QPair<QString, QString>>> colors, bool selected)
 {
     p->colors = colors;
     if (selected)

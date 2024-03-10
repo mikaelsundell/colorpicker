@@ -21,6 +21,9 @@ class Colorpicker : public QMainWindow
         typedef struct {
             QPoint cursor;
         } MoveEvent;
+    protected:
+        void dragEnterEvent(QDragEnterEvent* event) override;
+        void dropEvent(QDropEvent* event) override;
     private:
         void registerEvents();
         void pickEvent(PickEvent event);

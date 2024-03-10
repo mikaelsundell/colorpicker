@@ -9,8 +9,6 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
-#include <QtGlobal>
-#include <QBackingStore>
 
 class DraggerPrivate : public QObject
 {
@@ -36,22 +34,20 @@ class DraggerPrivate : public QObject
         };
         QPixmap paintCross();
         QPixmap paintSweep();
-        QColor borderColor;
+        QColor color;
         QPoint position;
         QSize baseSize;
         QRect baseRect;
         qreal scale;
         State state;
         QPointer<Dragger> widget;
-    
-
 };
 
 DraggerPrivate::DraggerPrivate()
-: borderColor(Qt::white)
+: color(Qt::black)
 , baseSize(256, 256)
 , baseRect(0, 0, 256, 256)
-, scale(0.5)
+, scale(0.8)
 {
 }
 
@@ -157,13 +153,25 @@ DraggerPrivate::paintCross()
     QPainter p(&pixmap);
     qreal diameter = std::min(size.width(), size.height()) * scale;
     qreal radius = diameter/2.0;
-    QBrush brush = QBrush(borderColor);
-    // cross
+    QBrush brush = QBrush(Qt::white);
     p.translate(cursor.x(), cursor.y());
+    // shadow
     {
         qreal length = qMax(radius * 0.1, 0.0);
         qreal origin = length * 0.4;
-        p.setPen(QPen(brush, 2));
+        p.setPen(QPen(Qt::black, 2));
+        p.translate(2, 2); // offset shadow
+        p.drawLine(origin, 0, length, 0);
+        p.drawLine(-length, 0, -origin, 0);
+        p.drawLine(0, length, 0, origin);
+        p.drawLine(0, -origin, 0, -length);
+        p.translate(-1, -1);
+    }
+    // cross
+    {
+        qreal length = qMax(radius * 0.1, 0.0);
+        qreal origin = length * 0.4;
+        p.setPen(QPen(Qt::white, 2));
         p.drawLine(origin, 0, length, 0);
         p.drawLine(-length, 0, -origin, 0);
         p.drawLine(0, length, 0, origin);
@@ -190,17 +198,13 @@ DraggerPrivate::paintSweep()
     {
         QPoint from = widget->mapFromGlobal(state.position);
         QPoint to = widget->mapFromGlobal(position);
-        // rectangle
+        // sweep
         {
             p.save();
-            QRect rectangle(from, to);
-            QColor fillColor = Qt::gray;
-            fillColor.setAlphaF(0.2);
-            QBrush brush(fillColor);
-            p.setBrush(brush);
-            QPen pen(Qt::white, 1);
-            p.setPen(pen);
-            p.drawRect(rectangle);
+            QRect rectangle = QRect(from, to);
+            QColor shadow = Qt::black;
+            shadow.setAlpha(20);
+            p.fillRect(rectangle, shadow);
             p.restore();
         }
         // cross
@@ -209,18 +213,31 @@ DraggerPrivate::paintSweep()
             QPoint cursor = widget->mapFromGlobal(position);
             qreal diameter = std::min(size.width(), size.height()) * scale;
             qreal radius = diameter/2.0;
-            QBrush brush = QBrush(borderColor);
-            // cross
+            p.save();
             p.translate(cursor.x(), cursor.y());
+            // shadow
             {
                 qreal length = qMax(radius * 0.1, 0.0);
                 qreal origin = length * 0.4;
-                p.setPen(QPen(brush, 2));
+                p.setPen(QPen(Qt::black, 2));
+                p.translate(2, 2); // offset shadow
+                p.drawLine(origin, 0, length, 0);
+                p.drawLine(-length, 0, -origin, 0);
+                p.drawLine(0, length, 0, origin);
+                p.drawLine(0, -origin, 0, -length);
+                p.translate(-1, -1);
+            }
+            // cross
+            {
+                qreal length = qMax(radius * 0.1, 0.0);
+                qreal origin = length * 0.4;
+                p.setPen(QPen(Qt::white, 2));
                 p.drawLine(origin, 0, length, 0);
                 p.drawLine(-length, 0, -origin, 0);
                 p.drawLine(0, length, 0, origin);
                 p.drawLine(0, -origin, 0, -length);
             }
+            p.restore();
         }
     }
     p.end();

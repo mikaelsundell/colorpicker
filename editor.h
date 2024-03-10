@@ -18,7 +18,6 @@ class Editor : public QDialog
         void setMaximum(int maximum);
         void setMinimum(int minimum);
         
-    
     public Q_SLOTS:
         void setValue(int value);
     

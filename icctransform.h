@@ -19,14 +19,20 @@ class ICCTransform : public QObject
         static ICCTransform* instance();
         QString inputProfile() const;
         QString outputProfile() const;
-        QRgb transformTo(QRgb image);
-        QImage transformTo(const QImage& image);
-        QRgb transformTo(QRgb color, const QString& profile, const QString& outputProfile);
-        QImage transformTo(const QImage& image, const QString& profile, const QString& outputProfile);
-   
+        QRgb map(QRgb color);
+        QImage map(const QImage& image);
+        QRgb map(QRgb color, const QString& profile, const QString& outputProfile);
+        QImage map(const QImage& image, const QString& profile, const QString& outputProfile);
+        QRgb map(QRgb color, const QColorSpace& colorSpace, const QString& outputProfile);
+        QImage map(const QImage& image, const QColorSpace& colorSpace, const QString& outputProfile);
+
     public Q_SLOTS:
         void setInputProfile(const QString& inputProfile);
         void setOutputProfile(const QString& displayProfile);
+    
+    Q_SIGNALS:
+        void inputProfileChanged(const QString& inputProfile);
+        void outputProfileChanged(const QString& outputProfile);
     
     private:
         ICCTransform();

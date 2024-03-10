@@ -12,6 +12,8 @@
 #include <QScreen>
 #include <QGuiApplication>
 
+#include <QColorSpace>
+
 #include <QDebug>
 
 namespace mac
@@ -48,6 +50,19 @@ namespace mac
 
         QImage fromNativeImage(CGImageRef cgImage)
         {
+            QImage ig;
+            CGColorSpaceRef xcolorSpace = CGImageGetColorSpace(cgImage);
+            if (xcolorSpace) {
+                CFDataRef iccData = CGColorSpaceCopyICCData(xcolorSpace);
+                if (iccData) {
+                    const UInt8 *bytePtr = CFDataGetBytePtr(iccData);
+                    QByteArray iccProfile(reinterpret_cast<const char*>(bytePtr), CFDataGetLength(iccData));
+                    CFRelease(iccData);
+                    QColorSpace qtColorSpace = QColorSpace::fromIccProfile(iccProfile);
+                    ig.setColorSpace(qtColorSpace);
+                }
+            }
+            
             const int width = (int)CGImageGetWidth(cgImage);
             const int height = (int)CGImageGetHeight(cgImage);
             QImage image(width, height, QImage::Format_ARGB32_Premultiplied);
@@ -143,21 +158,30 @@ namespace mac
         [window setLevel:NSStatusWindowLevel];
     }
 
+    static NSInteger cursorref = 0;
     void hideCursor() {
-        // needed to get rid of cursor completely, even when magnifyed
-        NSImage* image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
-        [image lockFocus];
-        [[NSColor clearColor] set];
-        NSRectFill(NSMakeRect(0, 0, 1, 1));
-        [image unlockFocus];
-        NSCursor* cursor = [[NSCursor alloc] initWithImage:image hotSpot:NSMakePoint(0, 0)];
-        [cursor set];
-        [NSCursor hide];
+        static NSCursor* cursor = nil;
+        if (cursorref == 0) {
+            if (cursor == nil) {
+                NSImage *image = [[NSImage alloc] initWithSize:NSMakeSize(1, 1)];
+                [image lockFocus];
+                [[NSColor clearColor] set];
+                NSRectFill(NSMakeRect(0, 0, 1, 1));
+                [image unlockFocus];
+                cursor = [[NSCursor alloc] initWithImage:image hotSpot:NSMakePoint(0, 0)];
+            }
+            [cursor set];
+            [NSCursor hide];
+        }
+        cursorref++;
     }
 
     void showCursor() {
-        [NSCursor unhide];
-        [[NSCursor arrowCursor] set];
+        if (cursorref > 0) {
+            cursorref = 0;
+            [NSCursor unhide];
+            [[NSCursor arrowCursor] set];
+        }
     }
 
     QImage grabImage(int x, int y, int width, int height, WId windowId)

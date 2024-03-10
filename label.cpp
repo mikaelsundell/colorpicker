@@ -43,7 +43,7 @@ LabelPrivate::update()
     buffer.setDevicePixelRatio(dpr);
     // painter
     QPainter p(&buffer);
-    QBrush brush = QBrush(widget->palette().highlight());
+    QBrush brush = QBrush(Qt::white);
     // readonly
     if (!readOnly)
     {

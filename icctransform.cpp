@@ -4,7 +4,7 @@
 
 #include "icctransform.h"
 #include <QApplication>
-#include <QDir>
+#include <QColorSpace>
 #include <QMap>
 #include <QPointer>
 #include <QMutex>
@@ -17,10 +17,13 @@ class ICCTransformPrivate : public QObject
     public:
         ICCTransformPrivate();
         ~ICCTransformPrivate();
-        cmsUInt32Number convertFormat(QImage::Format format);
-        cmsHTRANSFORM convertTransform(const QString& profile, const QString& outProfile, QImage::Format format);
-        QRgb transformTo(QRgb color, const QString& profile, const QString& outProfile);
-        QImage transformTo(QImage image, const QString& profile, const QString& outProfile);
+        cmsUInt32Number mapFormat(QImage::Format format);
+        cmsHTRANSFORM mapTransform(const QString& profile, const QString& outProfile, QImage::Format format);
+        cmsHTRANSFORM mapTransform(const QColorSpace& colorSpace, const QString& outProfile, QImage::Format format);
+        QImage mapImage(QImage image, cmsHTRANSFORM transform);
+        QRgb map(QRgb color, const QString& profile, const QString& outProfile);
+        QImage map(QImage image, const QString& profile, const QString& outProfile);
+        QImage map(QImage image, const QColorSpace& colorSpace, const QString& outProfile);
     
     public:
         QString inputProfile;
@@ -46,7 +49,7 @@ ICCTransformPrivate::~ICCTransformPrivate()
 }
 
 cmsUInt32Number
-ICCTransformPrivate::convertFormat(QImage::Format format)
+ICCTransformPrivate::mapFormat(QImage::Format format)
 {
     switch (format) {
         case QImage::Format_ARGB32:
@@ -80,9 +83,8 @@ ICCTransformPrivate::convertFormat(QImage::Format format)
 }
 
 cmsHTRANSFORM
-ICCTransformPrivate::convertTransform(const QString& profile, const QString& outProfile, QImage::Format format)
+ICCTransformPrivate::mapTransform(const QString& profile, const QString& outProfile, QImage::Format format)
 {
-    cmsHTRANSFORM transform = nullptr;
     if (!cache.contains(profile)) {
         cache.insert(profile, QMap<QImage::Format, QMap<QString, cmsHTRANSFORM> >());
     }
@@ -95,7 +97,7 @@ ICCTransformPrivate::convertTransform(const QString& profile, const QString& out
         int flags = (format == QImage::Format_ARGB32_Premultiplied ? cmsFLAGS_COPY_ALPHA : 0);
         cache[profile][format].insert(
             outProfile,
-                cmsCreateTransform(cmsProfile, convertFormat(format), cmsDisplayProfile, convertFormat(format), INTENT_PERCEPTUAL, flags)
+                cmsCreateTransform(cmsProfile, mapFormat(format), cmsDisplayProfile, mapFormat(format), INTENT_PERCEPTUAL, flags)
         );
         cmsCloseProfile(cmsProfile);
         cmsCloseProfile(cmsDisplayProfile);
@@ -103,10 +105,53 @@ ICCTransformPrivate::convertTransform(const QString& profile, const QString& out
     return cache[profile][format][outProfile];
 }
 
-QRgb
-ICCTransformPrivate::transformTo(QRgb color, const QString& profile, const QString& outProfile)
+cmsHTRANSFORM
+ICCTransformPrivate::mapTransform(const QColorSpace& colorSpace, const QString& outProfile, QImage::Format format)
 {
-    cmsHTRANSFORM transform = convertTransform(
+    QString profile = colorSpace.description();
+    QByteArray data = colorSpace.iccProfile();
+    if (!cache.contains(profile)) {
+        cache.insert(profile, QMap<QImage::Format, QMap<QString, cmsHTRANSFORM> >());
+    }
+    if (!cache[profile].contains(format)) {
+        cache[profile].insert(format, QMap<QString, cmsHTRANSFORM>());
+    }
+    if (!cache[profile][format].contains(outProfile)) {
+        cmsHPROFILE cmsProfile = cmsOpenProfileFromMem(data.constData(), data.size());
+        cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(outProfile.toLocal8Bit().constData(), "r");
+        int flags = (format == QImage::Format_ARGB32_Premultiplied ? cmsFLAGS_COPY_ALPHA : 0);
+        cache[profile][format].insert(
+            outProfile,
+                cmsCreateTransform(cmsProfile, mapFormat(format), cmsDisplayProfile, mapFormat(format), INTENT_PERCEPTUAL, flags)
+        );
+        cmsCloseProfile(cmsProfile);
+        cmsCloseProfile(cmsDisplayProfile);
+    }
+    return cache[profile][format][outProfile];
+}
+
+QImage
+ICCTransformPrivate::mapImage(QImage image, cmsHTRANSFORM transform)
+{
+    QImage mapped(image.width(), image.height(), image.format());
+    cmsDoTransformLineStride(
+        transform,
+        image.constBits(),
+        mapped.bits(),
+        image.width(),
+        image.height(),
+        static_cast<cmsUInt32Number>(image.bytesPerLine()),
+        static_cast<cmsUInt32Number>(mapped.bytesPerLine()),
+        0,
+        0);
+    mapped.setDevicePixelRatio(image.devicePixelRatio());
+    return mapped;
+}
+
+QRgb
+ICCTransformPrivate::map(QRgb color, const QString& profile, const QString& outProfile)
+{
+    cmsHTRANSFORM transform = mapTransform(
         profile, outProfile, QImage::Format_RGB32
     );
     QRgb transformColor;
@@ -115,22 +160,17 @@ ICCTransformPrivate::transformTo(QRgb color, const QString& profile, const QStri
 }
 
 QImage
-ICCTransformPrivate::transformTo(QImage image, const QString& profile, const QString& outProfile)
+ICCTransformPrivate::map(QImage image, const QString& profile, const QString& outProfile)
 {
-    cmsHTRANSFORM transform = convertTransform(profile, outProfile, image.format());
-    QImage transformimage(image.width(), image.height(), image.format());
-    cmsDoTransformLineStride(
-        transform,
-        image.constBits(),
-        transformimage.bits(),
-        image.width(),
-        image.height(),
-        static_cast<cmsUInt32Number>(image.bytesPerLine()),
-        static_cast<cmsUInt32Number>(transformimage.bytesPerLine()),
-        0,
-        0);
-    transformimage.setDevicePixelRatio(image.devicePixelRatio());
-    return transformimage;
+    cmsHTRANSFORM transform = mapTransform(profile, outProfile, image.format());
+    return mapImage(image, transform);
+}
+
+QImage
+ICCTransformPrivate::map(QImage image, const QColorSpace& colorSpace, const QString& outProfile)
+{
+    cmsHTRANSFORM transform = mapTransform(colorSpace, outProfile, image.format());
+    return mapImage(image, transform);
 }
 
 #include "icctransform.moc"
@@ -159,6 +199,7 @@ ICCTransform::instance()
 QString
 ICCTransform::ICCTransform::inputProfile() const
 {
+    Q_ASSERT(!p->inputProfile.isEmpty());
     return p->inputProfile;
 }
 
@@ -166,40 +207,55 @@ void
 ICCTransform::ICCTransform::setInputProfile(const QString& inputProfile)
 {
     p->inputProfile = inputProfile;
+    inputProfileChanged(inputProfile);
 }
 
 QString
 ICCTransform::ICCTransform::outputProfile() const
 {
+    Q_ASSERT(!p->outputProfile.isEmpty());
     return p->outputProfile;
 }
 
 void
 ICCTransform::ICCTransform::setOutputProfile(const QString& outputProfile)
 {
-    p->outputProfile = outputProfile; 
+    p->outputProfile = outputProfile;
+    outputProfileChanged(outputProfile);
 }
 
 QRgb
-ICCTransform::ICCTransform::transformTo(QRgb color)
+ICCTransform::ICCTransform::map(QRgb color)
 {
-    return p->transformTo(color, p->inputProfile, p->outputProfile);
+    return p->map(color, p->inputProfile, p->outputProfile);
 }
 
 QImage
-ICCTransform::ICCTransform::transformTo(const QImage& image)
+ICCTransform::ICCTransform::map(const QImage& image)
 {
-    return p->transformTo(image, p->inputProfile, p->outputProfile);
+    return p->map(image, p->inputProfile, p->outputProfile);
 }
 
 QRgb
-ICCTransform::ICCTransform::transformTo(QRgb color, const QString& inputProfile, const QString& outputProfile)
+ICCTransform::ICCTransform::map(QRgb color, const QString& inputProfile, const QString& outputProfile)
 {
-    return p->transformTo(color, inputProfile, outputProfile);
+    return p->map(color, inputProfile, outputProfile);
 }
 
 QImage
-ICCTransform::transformTo(const QImage& image, const QString& inputProfile, const QString& outputProfile)
+ICCTransform::map(const QImage& image, const QString& inputProfile, const QString& outputProfile)
 {
-    return p->transformTo(image, inputProfile, outputProfile);
+    return p->map(image, inputProfile, outputProfile);
+}
+
+QRgb
+ICCTransform::map(QRgb color, const QColorSpace& colorSpace, const QString& outputProfile)
+{
+    return QRgb();
+}
+
+QImage
+ICCTransform::map(const QImage& image, const QColorSpace& colorSpace, const QString& outputProfile)
+{
+    return p->map(image, colorSpace, outputProfile);
 }

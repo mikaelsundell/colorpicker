@@ -16,7 +16,7 @@ class Colorwheel : public QWidget
         qreal markerSize() const;
         qreal borderOpacity() const;
         qreal backgroundOpacity() const;
-        QList<QPair<QColor, QString>> colors();
+        QList<QPair<QColor, QPair<QString, QString>>> colors();
         int mapToSelected(const QPoint& point) const;
         QColor mapToColor(const QPoint& point) const;
         QColor mapToColor(const QColor& color, const QPoint& point) const;
@@ -31,7 +31,7 @@ class Colorwheel : public QWidget
         void setAngle(qreal angle);
         void setBackgroundOpacity(qreal opacity);
         void setBorderOpacity(qreal opacity);
-        void setColors(const QList<QPair<QColor, QString>> colors, bool selected = true);
+        void setColors(const QList<QPair<QColor, QPair<QString, QString>>> colors, bool selected = true);
         void setIQLineVisible(bool visible);
         void setLabelsVisible(bool visible);
         void setMarkerSize(qreal size);

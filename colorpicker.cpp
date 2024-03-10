@@ -14,11 +14,13 @@
 #include <QActionGroup>
 #include <QBuffer>
 #include <QClipboard>
+#include <QColorSpace>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QMenu>
+#include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
@@ -87,6 +89,7 @@ class ColorpickerPrivate : public QObject
         void blank();
         void activate();
         void deactivate();
+        void dropEvent(QDropEvent* event);
         bool eventFilter(QObject* object, QEvent* event);
         bool blocked();
     
@@ -129,6 +132,8 @@ class ColorpickerPrivate : public QObject
         void toggleH();
         void toggleS();
         void toggleV();
+        void next();
+        void previous();
         void apertureChanged(int value);
         void markerSizeChanged(int value);
         void backgroundOpacityChanged(int value);
@@ -195,9 +200,16 @@ class ColorpickerPrivate : public QObject
                 HsvChannel hsvChannel;
                 Type type;
         };
+        class Palette
+        {
+            public:
+                QList<QColor> colors;
+                QList<QPoint> positions;
+        };
     
         QRect grabRect(QPoint cursor);
         QImage grabBuffer(QRect rect);
+        Palette grabPalette(QImage image);
         bool underMouse(QWidget* widget);
         float channelRgb(QColor color, RgbChannel channel);
         float channelHsv(QColor color, HsvChannel channel);
@@ -213,14 +225,14 @@ class ColorpickerPrivate : public QObject
         cv::Mat asBGR(const cv::Mat& mat);
         cv::Mat asFloat32(const cv::Mat& mat);
         QColor asColor(const cv::Vec3f& vec);
-        QList<QPair<QColor,QString>> asColors();
+        QList<QPair<QColor,QPair<QString,QString>>> asColors();
         int width;
         int height;
         int aperture;
         int magnify;
         int displayNumber;
         QString iccProfile;
-        QString iccDisplayProfile;
+        QString iccCursorProfile;
         QPoint cursor;
         bool active;
         bool mouselocation;
@@ -229,7 +241,10 @@ class ColorpickerPrivate : public QObject
         Mode mode;
         State state;
         Edit edit;
+        int opencvk;
+        int opencvcolors;
         qsizetype selected;
+        QRect dragrect;
         QSize size;
         QList<State> states;
         QPointer<Colorpicker> window;
@@ -253,6 +268,8 @@ ColorpickerPrivate::ColorpickerPrivate()
 , format(Format::Int8bit)
 , display(Display::Hsv)
 , mode(Mode::None)
+, opencvk(20)
+, opencvcolors(6)
 , selected(-1)
 {
 }
@@ -310,6 +327,8 @@ ColorpickerPrivate::init()
     connect(ui->h, &Label::triggered, this, &ColorpickerPrivate::toggleH);
     connect(ui->s, &Label::triggered, this, &ColorpickerPrivate::toggleS);
     connect(ui->v, &Label::triggered, this, &ColorpickerPrivate::toggleV);
+    connect(ui->next, &QAction::triggered, this, &ColorpickerPrivate::next);
+    connect(ui->previous, &QAction::triggered, this, &ColorpickerPrivate::previous);
     connect(ui->pick, &QAction::triggered, this, &ColorpickerPrivate::togglePick);
     connect(ui->togglePick, &QPushButton::released, this, &ColorpickerPrivate::togglePick);
     connect(ui->drag, &QAction::triggered, this, &ColorpickerPrivate::toggleDrag);
@@ -427,7 +446,7 @@ ColorpickerPrivate::stylesheet()
                 QColor color = QColor::fromHslF(h / 360.0f, s / 100.0f, l / 100.0f);
                 // icc profile
                 ICCTransform* transform = ICCTransform::instance();
-                color = transform->transformTo(color.rgb());
+                color = transform->map(color.rgb());
                 QString hsl = QString("hsl(%1, %2%, %3%)")
                                 .arg(color.hue() == -1 ? 0 : color.hue())
                                 .arg(static_cast<int>(color.hslSaturationF() * 100))
@@ -496,6 +515,99 @@ ColorpickerPrivate::grabBuffer(QRect rect)
     return buffer;
 }
 
+ColorpickerPrivate::Palette
+ColorpickerPrivate::grabPalette(QImage image)
+{
+    Palette palette;
+    QImage buffer = image.convertToFormat(QImage::Format_RGB888); // opencv need 24-bit RGB only
+    qreal dpr = buffer.devicePixelRatio();
+    int width = buffer.width();
+    int height = buffer.height();
+    if (width > 5 && height > 5)
+    {
+        cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
+        cv::Mat matrix = cv::Mat(buffer.height(), buffer.width(), CV_8UC3, (void*)buffer.constBits(), buffer.bytesPerLine());
+        matrix = asFloat32(asBGR(matrix));
+        cv::Mat serialized = matrix.reshape(1, static_cast<int>(matrix.total()));
+        serialized.convertTo(serialized, CV_32F);
+
+        // perform k-means clustering
+        std::vector<int> labels;
+        cv::Mat centers;
+        cv::kmeans(serialized, opencvk, labels, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
+
+        // diversity selection logic
+        // calculates pairwise distances between all cluster centers to identify similar colors.
+        std::vector<std::vector<double>> distances(centers.rows, std::vector<double>(centers.rows, 0));
+        for (int i = 0; i < centers.rows; ++i) {
+            for (int j = i + 1; j < centers.rows; ++j) {
+                distances[i][j] = distances[j][i] = cv::norm(centers.row(i) - centers.row(j));
+            }
+        }
+        std::set<int> selectedindices;
+        while (selectedindices.size() < opencvcolors)
+        {
+            double maxmindistance = 0;
+            int candidateindex = -1;
+            for (int i = 0; i < centers.rows; ++i)
+                {
+                if (selectedindices.find(i) != selectedindices.end()) continue;
+                double minDistance = std::numeric_limits<double>::max();
+                for (int j : selectedindices)
+                {
+                    minDistance = std::min(minDistance, distances[i][j]);
+                }
+                if (minDistance > maxmindistance)
+                {
+                    maxmindistance = minDistance;
+                    candidateindex = i;
+                }
+            }
+            if (candidateindex != -1) {
+                selectedindices.insert(candidateindex);
+            } else {
+                break;
+            }
+        }
+        // create a matrix for the selected diverse centers.
+        cv::Mat diversecenters(static_cast<int>(selectedindices.size()), centers.cols, centers.type());
+        int idx = 0;
+        for (int selectedIndex : selectedindices) {
+            centers.row(selectedIndex).copyTo(diversecenters.row(idx++));
+        }
+        // reassign each pixel in the image to the color of the closest diverse center.
+        for (size_t i = 0; i < labels.size(); ++i) {
+            int clusterIndex = static_cast<int>(std::distance(selectedindices.begin(), selectedindices.find(labels[i])));
+            for (int j = 0; j < 3; ++j) { // assuming 3 channels
+                serialized.at<float>(static_cast<int>(i * 3 + j)) = diversecenters.at<float>(clusterIndex, j);
+            }
+        }
+        const int seed = 101010; // ultimate question of life in binary
+        std::mt19937 gen(seed);
+        // convert to hue and get pixel (x, y) coordinates
+        std::unordered_map<int, std::vector<int>> indicesmap;
+        for (int i = 0; i < labels.size(); ++i) {
+            indicesmap[labels[i]].push_back(i);
+        }
+        for (int i = 0; i < diversecenters.rows; ++i) {
+            cv::Vec3f center = diversecenters.at<cv::Vec3f>(i);
+            auto it = std::next(selectedindices.begin(), i);
+            if (it != selectedindices.end()) {
+                int originallabel = *it;
+                std::vector<int> &indices = indicesmap[originallabel];
+                std::uniform_int_distribution<> dis(0, static_cast<int>(indices.size() - 1));
+                int index = indices[dis(gen)];
+                QPoint position = QPoint(index % width, index / width) / dpr;
+                {
+                    palette.colors.push_back(asColor(center));
+                    palette.positions.push_back(position);
+                }
+            }
+        }
+    }
+    return palette;
+}
+
 bool
 ColorpickerPrivate::underMouse(QWidget* widget) {
     QPoint pos = widget->mapFromGlobal(QCursor::pos());
@@ -539,11 +651,11 @@ ColorpickerPrivate::update()
     ICCTransform* transform = ICCTransform::instance();
     QString iccCurrentProfile = iccProfile;
     if (!iccCurrentProfile.length()) {
-        iccCurrentProfile = iccDisplayProfile;
+        iccCurrentProfile = iccCursorProfile;
     }
-    if (iccCurrentProfile != iccDisplayProfile) {
-        color = transform->transformTo(color.rgb(), iccDisplayProfile, iccCurrentProfile);
-        buffer = transform->transformTo(buffer, iccDisplayProfile, iccCurrentProfile);
+    if (iccCurrentProfile != iccCursorProfile) {
+        color = transform->map(color.rgb(), iccCursorProfile, iccCurrentProfile);
+        buffer = transform->map(buffer, iccCursorProfile, iccCurrentProfile);
     }
     // state
     {
@@ -571,16 +683,15 @@ ColorpickerPrivate::view()
     QImage image;
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
-    {
-        if (state.iccProfile != transform->outputProfile()) {
-            color = transform->transformTo(state.color.rgb(), state.iccProfile, transform->outputProfile());
-            image = transform->transformTo(state.image, state.iccProfile, transform->outputProfile());
-        }
-        else {
-            color = state.color;
-            image = state.image;
-        }
+    if (state.iccProfile != transform->outputProfile()) {
+        color = transform->map(state.color.rgb(), state.iccProfile, transform->outputProfile());
+        image = transform->map(state.image, state.iccProfile, transform->outputProfile());
     }
+    else {
+        color = state.color;
+        image = state.image;
+    }
+    
     // pixmap
     QPixmap pixmap(width * dpr, height * dpr);
     pixmap.setDevicePixelRatio(dpr);
@@ -606,11 +717,24 @@ ColorpickerPrivate::view()
 void
 ColorpickerPrivate::widget()
 {
+    // color profile
+    {
+        if (!active) {
+            int index = ui->iccColorProfile->findData(state.iccProfile);
+            if (index > 0) {
+                if (ui->iccColorProfile->currentIndex() != index) {
+                    ui->iccColorProfile->setCurrentIndex(ui->iccColorProfile->findData(state.iccProfile));
+                }
+            } else {
+                ui->iccColorProfile->setCurrentIndex(0);
+            }
+        }
+    }
     // display
     {
         ui->display->setText(QString("Display #%1").arg(state.displayNumber));
         QFontMetrics metrics(ui->iccProfile->font());
-        QString text = metrics.elidedText(QFileInfo(iccDisplayProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
+        QString text = metrics.elidedText(QFileInfo(iccCursorProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
         ui->iccProfile->setText(text);
     }
     // rgb
@@ -643,29 +767,30 @@ ColorpickerPrivate::widget()
         QPoint screenpos = state.cursor - state.origin;
         ui->mouseLocation->setText(QString("(%1, %2)").arg(screenpos.x()).arg(screenpos.y()));
     }
-    // colorwheel
+    // color wheel
     {
-        QList<QPair<QColor,QString>> colors = asColors();
+        QList<QPair<QColor,QPair<QString,QString>>> colors = asColors();
         if (active)
         {
             if (dragcolors.count() > 0) {
                 QString iccCurrentProfile = iccProfile;
                 if (!iccCurrentProfile.length()) {
-                    iccCurrentProfile = iccDisplayProfile;
+                    iccCurrentProfile = iccCursorProfile;
                 }
                 for(QColor dragcolor : dragcolors) {
                     QColor color = dragcolor;
-                    // icc profile
-                    ICCTransform* transform = ICCTransform::instance();
-                    if (iccCurrentProfile != transform->outputProfile()) {
-                        color = transform->transformTo(color.rgb(), iccCurrentProfile, transform->outputProfile());
-                    }
-                    colors.push_back(QPair<QColor,QString>(color.rgb(), QFileInfo(iccCurrentProfile).baseName()));
+                    colors.push_back(QPair<QColor,QPair<QString,QString>>(
+                        color.rgb(),
+                        QPair<QString,QString>(QFileInfo(iccCurrentProfile).baseName(), iccCurrentProfile)
+                    ));
                 }
             }
             else
             {
-                colors.push_back(QPair<QColor,QString>(state.color, QFileInfo(state.iccProfile).baseName()));
+                colors.push_back(QPair<QColor,QPair<QString,QString>>(
+                    state.color,
+                    QPair<QString,QString>(QFileInfo(state.iccProfile).baseName(), state.iccProfile)
+                ));
             }
             // push current state, use as selected
             ui->colorWheel->setColors(colors, true);
@@ -676,28 +801,19 @@ ColorpickerPrivate::widget()
             ui->colorWheel->setColors(colors, false);
         }
     }
+    QColor color = state.color;
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    if (state.iccProfile != transform->outputProfile()) {
+        color = transform->map(color.rgb(), state.iccProfile, iccCursorProfile); // use display picker display
+    }
     // picker
-    if (mode == Mode::Pick)
-    {
-        QColor color = state.color;
-        
-        // icc profile
-        ICCTransform* transform = ICCTransform::instance();
-        if (state.iccProfile != transform->outputProfile()) {
-            color = transform->transformTo(color.rgb(), state.iccProfile, iccDisplayProfile); // use display picker display
-        }
-        // threshold for border color contrast
-        if (color.valueF() < 0.2f) {
-            picker->setBorderColor(Qt::white);
-        } else {
-            picker->setBorderColor(Qt::black);
-        }
+    if (mode == Mode::Pick) {
         picker->setColor(color);
         picker->update(cursor);
     }
     // drag
-    if (mode == Mode::Drag)
-    {
+    if (mode == Mode::Drag) {
         dragger->update(cursor);
     }
 }
@@ -754,6 +870,82 @@ ColorpickerPrivate::deactivate()
     ui->active->setChecked(false);
 }
 
+void
+ColorpickerPrivate::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+    QList<QImage> images;
+    if (mimeData->hasUrls()) {
+        QList<QUrl> urls = mimeData->urls();
+        for (const QUrl &url : urls) {
+            if (url.isLocalFile()) {
+                QString filePath = url.toLocalFile();
+                QImage image(filePath);
+                if (!image.isNull()) {
+                    if (image.format() != QImage::Format_ARGB32_Premultiplied) {
+                        image = image.convertToFormat(QImage::Format_ARGB32_Premultiplied); // works better with QPixmap draw_iamge
+                    }
+                    images.append(image);
+                }
+            }
+        }
+    }
+    if (mimeData->hasImage()) {
+        images.append(qvariant_cast<QImage>(event->mimeData()->imageData()));
+    }
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QString iccCurrentProfile = iccProfile;
+    if (!iccCurrentProfile.length()) {
+        iccCurrentProfile = iccCursorProfile;
+    }
+    for(QImage image : images) {
+        QColorSpace colorspace = image.colorSpace(); // embedded colorspace
+        if (colorspace.isValid()) {
+            QString iccColorspaceProfile = colorspace.description();
+            if (iccCurrentProfile != iccColorspaceProfile) {
+                image = transform->map(image, colorspace, iccCurrentProfile);
+            }
+        } else {
+            if (iccCurrentProfile != iccCursorProfile) {
+                image = transform->map(image, iccCursorProfile, iccCurrentProfile);
+            }
+        }
+        Palette palette = grabPalette(image);
+        if (palette.colors.size()) {
+            for (int i = 0; i < palette.colors.size(); ++i) {
+                QPoint pos = palette.positions.at(i);
+                QRect grab = grabRect(pos);
+                QImage buffer = image.copy(grab);
+                // paint with device pixel ratio and apply
+                // transforms and fill in user space
+                QColor color = palette.colors.at(i);
+                QRect rect(
+                   (grab.width() - aperture) / 2,
+                   (grab.height() - aperture) / 2,
+                   aperture, aperture
+                );
+                // state
+                State drag = State{
+                  color,
+                  rect,
+                  magnify,
+                  buffer,
+                  pos,
+                  QPoint(0, 0),
+                  displayNumber,
+                  iccCurrentProfile
+                };
+                states.push_back(drag);
+            }
+            selected = states.count() - 1;
+            view();
+            widget();
+        }
+    }
+    deactivate();
+}
+
 bool
 ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
@@ -799,7 +991,6 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
         if (event->type() == QEvent::QEvent::MouseButtonPress) {
             QMouseEvent* mouseEvent = (QMouseEvent*)event;
             if (mouseEvent->button() == Qt::LeftButton) {
-                
                 Colorwheel* colorWheel = ui->colorWheel;
                 if (underMouse(colorWheel)) {
                     selected = colorWheel->mapToSelected(
@@ -914,127 +1105,20 @@ void
 ColorpickerPrivate::drag()
 {
     mode = Mode::Drag;
-    QRect rect = dragger->dragRect();
-    QImage image = mac::grabImage(rect.x(), rect.y(), rect.width(), rect.height(), dragger->winId());
-    image = image.convertToFormat(QImage::Format_RGB888); // opencv need 24-bit RGB only
-    qreal dpr = image.devicePixelRatio();
-    
+    dragrect = dragger->dragRect();
+    QImage image = mac::grabImage(dragrect.x(), dragrect.y(), dragrect.width(), dragrect.height(), dragger->winId());
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     QString iccCurrentProfile = iccProfile;
     if (!iccCurrentProfile.length()) {
-        iccCurrentProfile = iccDisplayProfile;
+        iccCurrentProfile = iccCursorProfile;
     }
-    if (iccCurrentProfile != iccDisplayProfile) {
-        image = transform->transformTo(image, iccDisplayProfile, iccCurrentProfile);
+    if (iccCurrentProfile != iccCursorProfile) {
+        image = transform->map(image, iccCursorProfile, iccCurrentProfile);
     }
-    dragcolors.clear();
-    dragpositions.clear();
-    if (rect.width() > 5 && rect.height() > 5) // cluster limit
-    {
-        int width = image.width();
-        int colornum = 6;
-        {
-            cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
-            cv::Mat matrix = cv::Mat(image.height(), image.width(), CV_8UC3, (void*)image.constBits(), image.bytesPerLine());
-            matrix = asFloat32(asBGR(matrix));
-            
-            // prepare the image data for k-means clustering
-            // the image is reshaped into a 2D matrix where each row represents a pixel and each column represents a color channel.
-            // this serialization flattens the image into a single row for processing with k-means.
-            cv::Mat serialized = matrix.reshape(1, static_cast<int>(matrix.total()));
-            serialized.convertTo(serialized, CV_32F);
-
-            // perform k-Means clustering
-            // k-means is applied to find 'k' clusters within the color space of the image.
-            // 'k' is predefined, aiming for a broad initial capture of the image's color diversity.
-            int k = 20;
-            std::vector<int> labels;
-            cv::Mat centers;
-            cv::kmeans(serialized, k, labels, cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 10, 1.0), 3, cv::KMEANS_PP_CENTERS, centers);
-
-            // diversity selection logic
-            // calculates pairwise distances between all cluster centers to identify similar colors.
-            std::vector<std::vector<double>> distances(centers.rows, std::vector<double>(centers.rows, 0));
-            for (int i = 0; i < centers.rows; ++i) {
-                for (int j = i + 1; j < centers.rows; ++j) {
-                    distances[i][j] = distances[j][i] = cv::norm(centers.row(i) - centers.row(j));
-                }
-            }
-            
-            // select a diverse set of colors.
-            // aim to select 'tool.colors' that are as distinct as possible based on their pairwise distances.
-            std::set<int> selectedindices;
-            while (selectedindices.size() < colornum)
-            {
-                double maxmindistance = 0;
-                int candidateindex = -1;
-                for (int i = 0; i < centers.rows; ++i)
-                    {
-                    if (selectedindices.find(i) != selectedindices.end()) continue;
-                    double minDistance = std::numeric_limits<double>::max();
-                    for (int j : selectedindices)
-                    {
-                        minDistance = std::min(minDistance, distances[i][j]);
-                    }
-                    if (minDistance > maxmindistance)
-                    {
-                        maxmindistance = minDistance;
-                        candidateindex = i;
-                    }
-                }
-                if (candidateindex != -1) {
-                    selectedindices.insert(candidateindex);
-                } else {
-                    break;
-                }
-            }
-            
-            // create a matrix for the selected diverse centers.
-            cv::Mat diversecenters(static_cast<int>(selectedindices.size()), centers.cols, centers.type());
-            int idx = 0;
-            for (int selectedIndex : selectedindices) {
-                centers.row(selectedIndex).copyTo(diversecenters.row(idx++));
-            }
-
-            // reassign each pixel in the image to the color of the closest diverse center.
-            // this step alters the original serialized image data to reflect the reduced color palette.
-            for (size_t i = 0; i < labels.size(); ++i) {
-                int clusterIndex = static_cast<int>(std::distance(selectedindices.begin(), selectedindices.find(labels[i])));
-                for (int j = 0; j < 3; ++j) { // assuming 3 channels
-                    serialized.at<float>(static_cast<int>(i * 3 + j)) = diversecenters.at<float>(clusterIndex, j);
-                }
-            }
-                
-            const int seed = 101010; // ultimate question of life in binary
-            std::mt19937 gen(seed);
-            
-            // convert to hue and get pixel (x, y) coordinates
-            std::unordered_map<int, std::vector<int>> indicesmap;
-            for (int i = 0; i < labels.size(); ++i) {
-                indicesmap[labels[i]].push_back(i);
-            }
-            
-            for (int i = 0; i < diversecenters.rows; ++i) {
-                cv::Vec3f center = diversecenters.at<cv::Vec3f>(i);
-                auto it = std::next(selectedindices.begin(), i);
-                if (it != selectedindices.end()) {
-                    int originallabel = *it;
-                    std::vector<int> &indices = indicesmap[originallabel];
-
-                    // randomly select an index from the vector for this label
-                    std::uniform_int_distribution<> dis(0, static_cast<int>(indices.size() - 1));
-                    int index = indices[dis(gen)];
-                    QPoint position = QPoint(index % width, index / width) / dpr;
-                    // push
-                    {
-                        dragcolors.push_back(asColor(center));
-                        dragpositions.push_back(rect.topLeft() + position);
-                    }
-                }
-            }
-        }
-    }
+    Palette palette = grabPalette(image);
+    dragcolors = palette.colors;
+    dragpositions = palette.positions;
     update();
 }
 
@@ -1050,7 +1134,7 @@ ColorpickerPrivate::dragClosed()
 {
     if (dragcolors.size()) {
         for (int i = 0; i < dragcolors.size(); ++i) {
-            QPoint pos = dragpositions.at(i);
+            QPoint pos = dragrect.topLeft() + dragpositions.at(i);
             QRect grab = grabRect(pos);
             QImage buffer = grabBuffer(grab);
             QScreen* screen = QGuiApplication::screenAt(pos);
@@ -1068,10 +1152,10 @@ ColorpickerPrivate::dragClosed()
             ICCTransform* transform = ICCTransform::instance();
             QString iccCurrentProfile = iccProfile;
             if (!iccCurrentProfile.length()) {
-                iccCurrentProfile = iccDisplayProfile;
+                iccCurrentProfile = iccCursorProfile;
             }
-            if (iccCurrentProfile != iccDisplayProfile) {
-                buffer = transform->transformTo(buffer, iccDisplayProfile, iccCurrentProfile);
+            if (iccCurrentProfile != iccCursorProfile) {
+                buffer = transform->map(buffer, iccCursorProfile, iccCurrentProfile);
             }
             // state
             State drag = State{
@@ -1112,12 +1196,6 @@ ColorpickerPrivate::togglePick()
         mode = Mode::Pick;
         activate();
         {
-            // threshold for border color contrast
-            if (state.color.valueF() < 0.2f) {
-                picker->setBorderColor(Qt::white);
-            } else {
-                picker->setBorderColor(Qt::black);
-            }
             picker->setColor(state.color);
             picker->update(cursor);
             picker->show();
@@ -1305,7 +1383,9 @@ void
 ColorpickerPrivate::iccConvertProfileChanged(int index)
 {
     iccProfile = ui->iccColorProfile->itemData(index, Qt::UserRole).value<QString>();
-    update();
+    if (active) {
+        update();
+    }
 }
 
 void
@@ -1416,7 +1496,6 @@ ColorpickerPrivate::toggleH()
     }
 }
 
-
 void
 ColorpickerPrivate::toggleS()
 {
@@ -1430,7 +1509,6 @@ ColorpickerPrivate::toggleS()
     }
 }
 
-
 void
 ColorpickerPrivate::toggleV()
 {
@@ -1441,6 +1519,35 @@ ColorpickerPrivate::toggleV()
             .type = Edit::Hsv
         };
         toggleHSV();
+    }
+}
+
+void
+ColorpickerPrivate::next()
+{
+    if (!active && selected >= 0) {
+        if (states.count()) {
+            selected = (selected + 1) % states.count();
+            ui->colorWheel->setSelected(selected);
+            state = states[selected]; // restore state
+            view();
+            widget();
+
+        }
+    }
+}
+
+void
+ColorpickerPrivate::previous()
+{
+    if (!active && selected >= 0) {
+        if (states.count()) {
+            selected = (selected - 1 + states.count()) % states.count();
+            ui->colorWheel->setSelected(selected);
+            state = states[selected]; // restore state
+            view();
+            widget();
+        }
     }
 }
 
@@ -1615,6 +1722,7 @@ ColorpickerPrivate::pdf()
             };
             QTextTableFormat format;
             format.setBorder(1.0);
+            format.setBorderBrush(QBrush(Qt::black));
             format.setBorderCollapse(true);
             format.setCellPadding(padding);
             format.setColumnWidthConstraints(columns);
@@ -1638,7 +1746,7 @@ ColorpickerPrivate::pdf()
             
             // icc profile
             ICCTransform* transform = ICCTransform::instance();
-            QImage image = transform->transformTo(widget.toImage(), transform->outputProfile(), transform->inputProfile());
+            QImage image = transform->map(widget.toImage(), transform->outputProfile(), transform->inputProfile());
             QTextImageFormat imageformat;
             imageformat.setWidth(ui->colorWheel->width()/2);
             imageformat.setHeight(ui->colorWheel->height()/2);
@@ -1670,6 +1778,7 @@ ColorpickerPrivate::pdf()
             };
             QTextTableFormat format;
             format.setBorder(1.0);
+            format.setBorderBrush(QBrush(Qt::black));
             format.setBorderCollapse(true);
             format.setCellPadding(padding);
             format.setColumnWidthConstraints(columns);
@@ -1717,23 +1826,26 @@ ColorpickerPrivate::pdf()
         // states
         for(int i=0; i<states.count(); i++) {
             State state = states[i];
+            
+            // icc profile
+            ICCTransform* transform = ICCTransform::instance();
+            QColor color = transform->map(state.color.rgb(), state.iccProfile, transform->inputProfile());
+            QImage image = transform->map(state.image, state.iccProfile, transform->inputProfile());
+            qreal dpr = state.image.devicePixelRatio();
+            
             // index
             {
                 QTextTableCell cell = table->cellAt(i+1, 0);
                 QTextCursor cellcursor = cell.firstCursorPosition();
+                QTextCharFormat cellformat;
+                cellformat.setBackground(color);
+                cell.setFormat(cellformat);
                 cellcursor.insertHtml(QString("<small>%1</small>").arg(i+1));
             }
             // image
             {
                 QTextTableCell cell = table->cellAt(i+1, 1);
                 QTextCursor cellcursor = cell.firstCursorPosition();
-                
-                // icc profile
-                ICCTransform* transform = ICCTransform::instance();
-                QColor color = transform->transformTo(state.color.rgb(), state.iccProfile, transform->inputProfile());
-                QImage image = transform->transformTo(state.image, state.iccProfile, transform->inputProfile());
-                qreal dpr = state.image.devicePixelRatio();
-                const QBrush blackBrush = QBrush(Qt::black);
                 // png
                 QString format = "png";
                 QImage png(image.width(), image.height(), QImage::Format_RGB32); // png format
@@ -1742,7 +1854,7 @@ ColorpickerPrivate::pdf()
                     QPainter p(&png);
                     p.save();
                     p.scale(state.magnify, state.magnify);
-                    p.fillRect(QRect(0, 0, image.width(), image.height()), blackBrush);
+                    p.fillRect(QRect(0, 0, image.width(), image.height()), QBrush(Qt::black));
                     p.drawImage(0, 0, image);
                     p.setPen(QPen(Qt::NoPen));
                     p.fillRect(state.rect, QBrush(color));
@@ -2027,20 +2139,17 @@ ColorpickerPrivate::asColor(const cv::Vec3f& vec)
     return QColor(r, g, b);
 }
 
-QList<QPair<QColor, QString>>
+QList<QPair<QColor, QPair<QString, QString>>>
 ColorpickerPrivate::asColors()
 {
-    QList<QPair<QColor, QString>> colors;
+    QList<QPair<QColor, QPair<QString, QString>>> colors;
     for(State state : states)
     {
         QColor color = state.color;
-        // icc profile
-        ICCTransform* transform = ICCTransform::instance();
-        if (state.iccProfile != transform->outputProfile()) {
-            color = transform->transformTo(color.rgb(), state.iccProfile, transform->outputProfile());
-        }
         colors.push_back(
-            QPair<QColor,QString>(color, QFileInfo(state.iccProfile).baseName())
+            QPair<QColor,QPair<QString, QString>>(
+                color,
+                QPair<QString, QString>(QFileInfo(state.iccProfile).baseName(), state.iccProfile))
         );
     }
     return colors;
@@ -2060,6 +2169,7 @@ Colorpicker::Colorpicker()
     p->window = this;
     p->init();
     registerEvents();
+    setAcceptDrops(true);
 }
 
 Colorpicker::~Colorpicker()
@@ -2077,7 +2187,7 @@ Colorpicker::pickEvent(PickEvent event)
 {
     if (!p->blocked()) {
         p->displayNumber = event.displayNumber;
-        p->iccDisplayProfile = event.iccProfile;
+        p->iccCursorProfile = event.iccProfile;
         p->cursor = event.cursor;
         p->update();
     }
@@ -2090,4 +2200,34 @@ Colorpicker::moveEvent(MoveEvent event)
         p->cursor = event.cursor;
         p->update();
     }
+}
+
+void
+Colorpicker::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasImage()) {
+        event->acceptProposedAction();
+        return;
+    }
+    if (event->mimeData()->hasUrls()) {
+        QList<QUrl> urls = event->mimeData()->urls();
+        for (const QUrl &url : urls) {
+            if (url.isLocalFile()) {
+                QString filePath = url.toLocalFile();
+                QString extension = QFileInfo(filePath).suffix().toLower();
+                QStringList imageExtensions = {"jpg", "jpeg", "png", "gif", "bmp", "tiff", "webp"};
+                if (imageExtensions.contains(extension)) {
+                    event->acceptProposedAction();
+                    return;
+                }
+            }
+        }
+    }
+    event->ignore();
+}
+
+void
+Colorpicker::dropEvent(QDropEvent *event)
+{
+    p->dropEvent(event);
 }
