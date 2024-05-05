@@ -13,7 +13,6 @@
 #include <QGuiApplication>
 
 #include <QColorSpace>
-
 #include <QDebug>
 
 namespace mac

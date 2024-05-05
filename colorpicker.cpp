@@ -121,6 +121,13 @@ class ColorpickerPrivate : public QObject
         void magnify3x();
         void magnify4x();
         void magnify5x();
+        void capture1();
+        void capture2();
+        void capture4();
+        void capture8();
+        void capture16();
+        void capture32();
+        void capture64();
         void toggleMouseLocation();
         void iccConvertProfileChanged(int index);
         void toggleColors();
@@ -269,7 +276,7 @@ ColorpickerPrivate::ColorpickerPrivate()
 , display(Display::Hsv)
 , mode(Mode::None)
 , opencvk(20)
-, opencvcolors(6)
+, opencvcolors(8)
 , selected(-1)
 {
 }
@@ -377,6 +384,19 @@ ColorpickerPrivate::init()
         QActionGroup* actions = new QActionGroup(this);
         actions->setExclusive(true);
         for(QAction* action : ui->magnify->actions())
+            actions->addAction(action);
+    }
+    connect(ui->capture1, &QAction::triggered, this, &ColorpickerPrivate::capture1);
+    connect(ui->capture2, &QAction::triggered, this, &ColorpickerPrivate::capture2);
+    connect(ui->capture4, &QAction::triggered, this, &ColorpickerPrivate::capture4);
+    connect(ui->capture8, &QAction::triggered, this, &ColorpickerPrivate::capture8);
+    connect(ui->capture16, &QAction::triggered, this, &ColorpickerPrivate::capture16);
+    connect(ui->capture32, &QAction::triggered, this, &ColorpickerPrivate::capture32);
+    connect(ui->capture64, &QAction::triggered, this, &ColorpickerPrivate::capture64);
+    {
+        QActionGroup* actions = new QActionGroup(this);
+        actions->setExclusive(true);
+        for(QAction* action : ui->captureColors->actions())
             actions->addAction(action);
     }
     connect(ui->toggleMouseLocation, &QAction::triggered, this, &ColorpickerPrivate::toggleMouseLocation);
@@ -1384,6 +1404,48 @@ ColorpickerPrivate::magnify5x()
 {
     magnify = 5.0;
     update();
+}
+
+void
+ColorpickerPrivate::capture1()
+{
+    opencvcolors = 1;
+}
+
+void
+ColorpickerPrivate::capture2()
+{
+    opencvcolors = 2;
+}
+
+void
+ColorpickerPrivate::capture4()
+{
+    opencvcolors = 4;
+}
+
+void
+ColorpickerPrivate::capture8()
+{
+    opencvcolors = 8;
+}
+
+void
+ColorpickerPrivate::capture16()
+{
+    opencvcolors = 16;
+}
+
+void
+ColorpickerPrivate::capture32()
+{
+    opencvcolors = 32;
+}
+
+void
+ColorpickerPrivate::capture64()
+{
+    opencvcolors = 64;
 }
 
 void

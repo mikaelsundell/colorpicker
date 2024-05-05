@@ -77,7 +77,7 @@
          <item>
           <widget class="QToolButton" name="toggleDisplay">
            <property name="toolTip">
-            <string>Shide or hide display area</string>
+            <string>Show or hide display area</string>
            </property>
            <property name="icon">
             <iconset resource="colorpicker.qrc">
@@ -850,7 +850,7 @@
                  </size>
                 </property>
                 <property name="toolTip">
-                 <string>Change size of markers</string>
+                 <string>Change marker size</string>
                 </property>
                 <property name="minimum">
                  <number>1</number>
@@ -1196,7 +1196,7 @@
                </font>
               </property>
               <property name="toolTip">
-               <string>Multiply saturation by 2</string>
+               <string>Turn on x2 saturation</string>
               </property>
               <property name="text">
                <string>2x</string>
@@ -1351,6 +1351,18 @@
      <addaction name="next"/>
      <addaction name="previous"/>
     </widget>
+    <widget class="QMenu" name="captureColors">
+     <property name="title">
+      <string>Capture colors</string>
+     </property>
+     <addaction name="capture1"/>
+     <addaction name="capture2"/>
+     <addaction name="capture4"/>
+     <addaction name="capture8"/>
+     <addaction name="capture16"/>
+     <addaction name="capture32"/>
+     <addaction name="capture64"/>
+    </widget>
     <addaction name="active"/>
     <addaction name="pin"/>
     <addaction name="separator"/>
@@ -1358,6 +1370,8 @@
     <addaction name="displayValues"/>
     <addaction name="separator"/>
     <addaction name="magnify"/>
+    <addaction name="separator"/>
+    <addaction name="captureColors"/>
     <addaction name="separator"/>
     <addaction name="toggleMouseLocation"/>
    </widget>
@@ -1687,6 +1701,65 @@
    </property>
    <property name="shortcut">
     <string>Left</string>
+   </property>
+  </action>
+  <action name="capture1">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1</string>
+   </property>
+  </action>
+  <action name="capture2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>2</string>
+   </property>
+  </action>
+  <action name="capture4">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4</string>
+   </property>
+  </action>
+  <action name="capture8">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>8</string>
+   </property>
+  </action>
+  <action name="capture16">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>16</string>
+   </property>
+  </action>
+  <action name="capture32">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>32</string>
+   </property>
+  </action>
+  <action name="capture64">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>64</string>
    </property>
   </action>
  </widget>

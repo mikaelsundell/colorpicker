@@ -21,6 +21,8 @@ parse_args() {
                 major_version="${1#*=}" ;;
             --sign)
                 sign_code=ON ;;
+            --deploy)
+                deploy=ON ;;
             *)
                 build_type="$1" # save it in build_type if it's not a recognized flag
                 ;;
@@ -108,34 +110,36 @@ build_colorpicker() {
     cd "build.$build_type"
 
     # prefix dir
-    prefix="$script_dir/../3rdparty/build/macosx/$machine_arch.$build_type"
-    if ! [ -d "$prefix" ]; then
-        echo "could not find 3rdparty for build in: $prefix"
-        exit 1;
+    if ! [ -d "$THIRDPARTY_DIR" ]; then
+        echo "could not find 3rdparty project in: $THIRDPARTY_DIR"
+        exit 1
     fi
+    prefix="$THIRDPARTY_DIR"
 
     # xcode build
     xcode_type=$(echo "$build_type" | awk '{ print toupper(substr($0, 1, 1)) tolower(substr($0, 2)) }')
 
     # build
     cmake .. -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -G Xcode &&
-    cmake --build . --config $xcode_type --parallel
+    if [ "$deploy" == "ON" ]; then
+        cmake --build . --config $xcode_type --parallel
 
-    dmg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
-    if [ -f "$dmg_file" ]; then
-        rm -f "$dmg_file"
-    fi
+        dmg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
+        if [ -f "$dmg_file" ]; then
+            rm -f "$dmg_file"
+        fi
 
-    # deploy
-    $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
-    if [ "$sign_code" == "ON" ]; then
-        codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
-    fi
+        # deploy
+        $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
+        if [ "$sign_code" == "ON" ]; then
+            codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
+        fi
 
-    # deploydmg
-    $script_dir/scripts/macdmg.sh -b "$xcode_type/Colorpicker.app" -d "$dmg_file"
-    if [ "$sign_code" == "ON" ]; then
-        codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime --verbose "$dmg_file"
+        # deploydmg
+        $script_dir/scripts/macdmg.sh -b "$xcode_type/Colorpicker.app" -d "$dmg_file"
+        if [ "$sign_code" == "ON" ]; then
+            codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime --verbose "$dmg_file"
+        fi
     fi
 }
 
