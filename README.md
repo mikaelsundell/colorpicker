@@ -5,7 +5,7 @@
 Introduction
 ------------
 
-<img src="https://github.com/mikaelsundell/colorpicker/blob/1230ca62c7c94554b4c59d70b181ba1c5f4302ee/resources/Colorpicker.png" />
+<img src="resources/Colorpicker.png" style="padding-bottom: 20px;" />
 
 Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
