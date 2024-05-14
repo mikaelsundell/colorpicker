@@ -64,7 +64,6 @@ set -e
 clear
 
 # build type
-build_type="$1"
 if [ "$build_type" != "debug" ] && [ "$build_type" != "release" ] && [ "$build_type" != "all" ]; then
     echo "invalid build type: $build_type (use 'debug', 'release', or 'all')"
     exit 1
