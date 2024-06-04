@@ -14,20 +14,105 @@ Colorpicker is a versatile Mac application designed to select and capture colors
 |  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg)
 |  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg) | [Intel x86_64 macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg)
 
-Documentation
+Table of Contents
+=================
+
+- [ Colorpicker](#-colorpicker)
+  - [Introduction](#introduction)
+- [Table of Contents](#table-of-contents)
+      - [Quick start](#quick-start)
+  - [Menu](#menu)
+      - [Edit](#edit)
+      - [View](#view)
+      - [Help](#help)
+  - [Display section](#display-section)
+      - [Options](#options)
+  - [Colors section](#colors-section)
+      - [Options](#options-1)
+      - [Color wheel](#color-wheel)
+  - [Advanced](#advanced)
+      - [Display profiles](#display-profiles)
+      - [Color processing in LCMS](#color-processing-in-lcms)
+  - [Privacy \& Security](#privacy--security)
+  - [Build \& Package](#build--package)
+  - [Web Resources](#web-resources)
+  - [Copyright](#copyright)
 -------------
 
-**How to use**
+#### Quick start
 
-Colorpicker needs to be active to pick colors. The app is always active when launched but can be activated using `View > Turn on [space]`. Once active the application will show the current color interactivly in a hsl color wheel. Use the color picker button or `Edit > Capture from pick [Enter]` to start. Colors will start to appear on the color wheel. To end the color pick tool use either `Right mouse button` or `Esc` to end. After color pick app will no longer be active, colors can now be checked by clicking on the in the color wheel.
+The color picker needs to be active to pick colors. The app is always active when launched but can also be activated via `View > Turn On [Space]`. Once active, the application will display the current color interactively on an HSL color wheel. 
 
-**Display profile**
+To start picking colors, use the color picker button or `Edit > Capture from Pick [Enter]`. Colors will begin to appear on the color wheel. 
 
-The default native display values are the native colors from the display. The color values equals a screenshot with the display profile .icc applied. Switch between different display profiles to display color values in different color spaces, transformed from the display profile .icc.
+To end the color picking tool, use either the `Right Mouse Button` or `Esc`. After ending the color pick, the app will no longer be active. You can now check colors by clicking on them in the color wheel.
 
-**Color processing in LCMS**
 
-LCMS is a popular color management system for use in open source projects. LCMS closely matches ColorSync, AdobeACE, Reference ICC and other color engines. There may be variations, different engines should roughly match.
+Menu
+-------------
+
+#### Edit
+
+- <img src="resources/Picker.png" width="16" valign="center" style="padding-right: 4px;" /> **Capture from pick**: Capture color from single pick.
+- <img src="resources/Drag.png" width="16" valign="center" style="padding-right: 4px;" /> **Capture from sweep**: Capture color by dragging out a rectangle and pick the most dominant colors.
+- **Clear**: Clear all colors
+- **Copy RGB as text**: Copy selected color as RGB to clipboard
+- **Copy HSV as text**: Copy selected color as HSV to clipboard
+- **Copy HSL as text**: Copy selected color as HSL to clipboard
+- **Copy HEX as text**: Copy selected color as HEX to clipboard
+- **Copy ICC profile as text**: Copy current ICC profile as text
+- **Copy color as bitmap**: Copy selected color as bitmap to clipboard
+
+#### View
+
+- <img src="resources/Turnon.png" width="16" valign="center" style="padding-right: 4px;" /> **Turn on**: Start color picker.
+- <img src="resources/Pin.png" width="16" valign="center" style="padding-right: 4px;" /> **Pin**: Pin application on-top others.
+- **Color values**: Select next and previous colors in color wheel.
+- **Display values**: Set display mode for color values.
+- **Magnification**: Set magnification multiple for aperture.
+- **Capture colors**: Set the number colors to capture when dragging out a rectangle to pick the most dominant colors.
+- **Show mouse location**: Show mouse location.
+  
+#### Help
+
+- **Open Github README**: Open Github README page.
+- **Open Github Issues**: Open Github Issues page.
+
+Display section
+-------------
+
+#### Options
+
+- **Color Profile**: Defines the color profile used for color picking and grid capture.
+- **Aperture**: Specifies the size of the aperture for color picking and grid capture.
+
+Colors section
+-------------
+
+#### Options
+
+- **Marker Size**: Determines the size of the color markers.
+- **Background Opacity**: Sets the opacity level of the color wheel.
+
+#### Color wheel
+
+The color wheel can be adjusted to fit your specific color requirements.
+
+- **IQ**: Provides an approximation of the vector scope IQ line in HSV color space to verify skin tones.
+- **2x Saturation**: Doubles the saturation values.
+- **Saturation**: Displays saturation percentages.
+- **Segmented**: Shows segmented colors instead of a gradient.
+- **Labels**: Displays labels for the colors.
+
+Advanced
+-------------
+#### Display profiles
+
+The default native display values represent the inherent colors of the display. These color values are equivalent to a screenshot with the display profile (.icc) applied. You can switch between different display profiles to view color values in various color spaces, transformed according to the selected display profile (.icc).
+
+#### Color processing in LCMS
+
+Little CMS (LCMS) is a widely-used color management system in open-source projects. LCMS closely matches other color engines such as ColorSync, AdobeACE, and Reference ICC. While there may be slight variations between different engines, they generally produce similar results.
 
 Privacy & Security
 ------------------
@@ -40,46 +125,13 @@ Colorpicker is built using the ```build.sh``` script.
 
 Build all - debug and release:
 ```shell
-./build.sh all
+./build.sh all (--deploy)
 ```
 
-Requires 3rdparty build at the same level as Colorpicker.
+Requires pipeline and 3rdparty build at the same level as Colorpicker.
 
-Colorpicker Advanced
---------
-
-The Colorpicker app can be built both from commandline or using Xcode `-GXcode`. Use `DYLD_IMAGE_SUFFIX=_debug` environment variable to link and run with Qt debug frameworks.
-
-## CMake configuration ##
-
-Add cmake to path:
-
-```shell
-export PATH=$PATH:/Applications/CMake.app/Contents/bin
-```
-
-## Build configuration ##
-
-```shell
-mkdir build
-cd build
-cmake .. -DCMAKE_MODULE_PATH=<path>/colorpicker/modules -DCMAKE_PREFIX_PATH=<path>/3rdparty/build/macosx/arm64.debug -GXcode
-cmake --build . --config Release --parallel
-```
-
-**Packaging**
-
-The `macdeploy.sh` script will deploy mac bundle including dependencies.
-
-```shell
-./macdeploy.sh -b <path>/Colorpicker.app -m <path>/macdeployqt
-```
-
-The `macdmg.sh` script will create a application disk image.
-
-```shell
-./macdmg.sh -d <path>/Colorpicker_macOS12_<arch>.dmg
-```
+* Pipeline            https://github.com/mikaelsundell/pipeline
+* 3rdparty            https://github.com/mikaelsundell/3rdparty
 
 Web Resources
 -------------
@@ -104,9 +156,12 @@ Libjpeg-turbo: Copyright (C) 1994-1997 by Thomas G. Lane. Modifications in 2019 
 
 LibWebp: Copyright 2010 by Google Inc. All Rights Reserved.
 
+OpenCV: Copyright (C) 2015-2024, OpenCV Foundation, all rights reserved.
+
 Tiff: Copyright (c) 1988-1997 by Sam Leffler and Copyright (c) 1991-1997 by Silicon Graphics, Inc. All rights reserved.
 
 The Qt Company Ltd.: Copyright (C) 2016 by The Qt Company Ltd. All rights reserved.
 
-The use of the above-mentioned software within this product is in compliance with the respective licenses and/or terms and conditions of the copyright holders. The inclusion of these third-party libraries does not imply any endorsement by the copyright holders of the products developed using their software.
+sRGB color profile icc file, Copyright International Color Consortium, 2015
 
+The use of the above-mentioned software within this product is in compliance with the respective licenses and/or terms and conditions of the copyright holders. The inclusion of these third-party libraries does not imply any endorsement by the copyright holders of the products developed using their software.

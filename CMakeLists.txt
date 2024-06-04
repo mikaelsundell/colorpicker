@@ -73,7 +73,7 @@ if (APPLE)
     set (MACOSX_BUNDLE_INFO_STRING ${project_name})
     set (MACOSX_BUNDLE_BUNDLE_NAME ${project_name})
     set (MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
-    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.3")
+    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.4")
     set (MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
     set (MACOSX_BUNDLE_BUNDLE_VERSION "1.0")
     set (MACOSX_BUNDLE_COPYRIGHT "Copyright 2022-present Contributors to the ${project_name} project")
@@ -83,9 +83,13 @@ if (APPLE)
     set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
     add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources} ${app_iccprofiles})
     # definitions
+    add_definitions(-DMACOSX_BUNDLE_GUI_IDENTIFIER="${MACOSX_BUNDLE_GUI_IDENTIFIER}")
     add_definitions(-DMACOSX_BUNDLE_COPYRIGHT="${MACOSX_BUNDLE_COPYRIGHT}")
     add_definitions(-DMACOSX_BUNDLE_LONG_VERSION_STRING="${MACOSX_BUNDLE_LONG_VERSION_STRING}")
     add_definitions(-DGITHUBURL="https://github.com/mikaelsundell/colorpicker")
+    set_target_properties(${project_name} PROPERTIES
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${MACOSX_BUNDLE_GUI_IDENTIFIER}"
+    )
     # code signing
     if (SIGN_CODE)
         if (CODE_SIGN_IDENTITY STREQUAL "" OR DEVELOPMENT_TEAM_ID STREQUAL "")
@@ -98,7 +102,6 @@ if (APPLE)
         set_target_properties(${project_name} PROPERTIES
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${CODE_SIGN_IDENTITY}"
             XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${DEVELOPMENT_TEAM_ID}"
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${MACOSX_BUNDLE_GUI_IDENTIFIER}"
         )
     endif()
     set_target_properties(${project_name} PROPERTIES

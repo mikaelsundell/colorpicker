@@ -26,6 +26,7 @@
 #include <QPointer>
 #include <QPrinter>
 #include <QScreen>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QTextDocument>
 #include <QTextTable>
@@ -92,6 +93,8 @@ class ColorpickerPrivate : public QObject
         void dropEvent(QDropEvent* event);
         bool eventFilter(QObject* object, QEvent* event);
         bool blocked();
+        void loadSettings();
+        void saveSettings();
     
     public Q_SLOTS:
         void toggleDisplay();
@@ -148,6 +151,7 @@ class ColorpickerPrivate : public QObject
         void iqlineChanged(int state);
         void zoomChanged(int state);
         void saturationChanged(int state);
+        void segmentedChanged(int state);
         void labelsChanged(int state);
         void editorChanged(int value);
         void pdf();
@@ -303,6 +307,8 @@ ColorpickerPrivate::init()
     // editor
     editor.reset(new Editor(window.data()));
     editor->setObjectName("editor");
+    // settings
+    loadSettings();
     // resources
     QDir iccfiles(QApplication::applicationDirPath() + "/../ICCProfiles");
     ui->iccColorProfile->insertSeparator(ui->iccColorProfile->count());
@@ -310,6 +316,10 @@ ColorpickerPrivate::init()
     {
         ui->iccColorProfile->addItem
             ("Convert to " + iccfile.baseName(), QVariant::fromValue(iccfile.filePath()));
+        
+        if (iccfile.filePath() == iccProfile) {
+            ui->iccColorProfile->setCurrentIndex(ui->iccColorProfile->count() - 1);
+        }
     }
     // actions
     ui->toggleActive->setDefaultAction(ui->active);
@@ -407,6 +417,7 @@ ColorpickerPrivate::init()
     connect(ui->iqline, &QCheckBox::stateChanged, this, &ColorpickerPrivate::iqlineChanged);
     connect(ui->zoom, &QCheckBox::stateChanged, this, &ColorpickerPrivate::zoomChanged);
     connect(ui->saturation, &QCheckBox::stateChanged, this, &ColorpickerPrivate::saturationChanged);
+    connect(ui->segmented, &QCheckBox::stateChanged, this, &ColorpickerPrivate::segmentedChanged);
     connect(ui->labels, &QCheckBox::stateChanged, this, &ColorpickerPrivate::labelsChanged);
     connect(ui->clear, &QAction::triggered, this, &ColorpickerPrivate::clear);
     connect(ui->toggleClear, &QPushButton::pressed, this, &ColorpickerPrivate::clear);
@@ -666,7 +677,6 @@ ColorpickerPrivate::update()
     }
     int size = rect.width() * rect.height();
     color = QColor(colorR / size, colorG / size, colorB / size);
-    
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     QString iccCurrentProfile = iccProfile;
@@ -994,6 +1004,10 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
             widget();
         }
     }
+    if (event->type() == QEvent::Close) {
+        saveSettings();
+        return true;
+    }
     if (event->type() ==
         QEvent::KeyPress)
     {
@@ -1071,6 +1085,44 @@ ColorpickerPrivate::blocked()
         return widget == window.data() || widget->isAncestorOf(widget) || widget->window() == widget->window();
     }
     return false;
+}
+
+void
+ColorpickerPrivate::loadSettings()
+{
+    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, "Colorpicker");
+    iccProfile = settings.value("iccProfile", "").toString();
+    aperture = settings.value("aperture", aperture).toInt();
+    ui->aperture->setValue(aperture);
+    ui->markerSize->setValue(settings.value("markerSize", ui->markerSize->value()).toInt());
+    ui->colorWheel->setMarkerSize((qreal)ui->markerSize->value() / ui->markerSize->maximum());
+    ui->backgroundOpacity->setValue(settings.value("backgroundOpacity", ui->backgroundOpacity->value()).toInt());
+    ui->colorWheel->setBackgroundOpacity((qreal)ui->backgroundOpacity->value() / ui->backgroundOpacity->maximum());
+    ui->iqline->setChecked(settings.value("iqLine", ui->iqline->isChecked()).toBool());
+    ui->colorWheel->setIQLineVisible(ui->iqline->isChecked());
+    ui->zoom->setChecked(settings.value("zoom", ui->zoom->isChecked()).toBool());
+    ui->colorWheel->setZoomFactor(ui->iqline->isChecked() ? 2.0 : 1.0);
+    ui->saturation->setChecked(settings.value("saturation", ui->saturation->isChecked()).toBool());
+    ui->colorWheel->setSaturationVisible(ui->saturation->isChecked());
+    ui->segmented->setChecked(settings.value("segmented", ui->segmented->isChecked()).toBool());
+    ui->colorWheel->setSegmented(ui->segmented->isChecked());
+    ui->labels->setChecked(settings.value("labels", ui->labels->isChecked()).toBool());
+    ui->colorWheel->setLabelsVisible(ui->labels->isChecked());
+}
+
+void
+ColorpickerPrivate::saveSettings()
+{
+    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, "Colorpicker");
+    settings.setValue("iccProfile", iccProfile);
+    settings.setValue("aperture", aperture);
+    settings.setValue("markerSize", ui->markerSize->value());
+    settings.setValue("backgroundOpacity", ui->backgroundOpacity->value());
+    settings.setValue("iqLine", ui->iqline->isChecked());
+    settings.setValue("zoom", ui->zoom->isChecked());
+    settings.setValue("saturation", ui->saturation->isChecked());
+    settings.setValue("segmented", ui->segmented->isChecked());
+    settings.setValue("labels", ui->labels->isChecked());
 }
 
 void
@@ -1649,7 +1701,7 @@ ColorpickerPrivate::markerSizeChanged(int value)
 void
 ColorpickerPrivate::backgroundOpacityChanged(int value)
 {
-    ui->colorWheel->setBackgroundOpacity((qreal)value / ui->backgroundOpacity->maximum());
+    ui->colorWheel->setBackgroundOpacity((qreal)value / ui->markerSize->maximum());
     update();
 }
 
@@ -1685,6 +1737,15 @@ ColorpickerPrivate::saturationChanged(int state)
         ui->colorWheel->setSaturationVisible(true);
     else
         ui->colorWheel->setSaturationVisible(false);
+}
+
+void
+ColorpickerPrivate::segmentedChanged(int state)
+{
+    if (state == Qt::Checked)
+        ui->colorWheel->setSegmented(true);
+    else
+        ui->colorWheel->setSegmented(false);
 }
 
 void

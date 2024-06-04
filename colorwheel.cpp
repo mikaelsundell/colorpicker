@@ -34,9 +34,10 @@ class ColorwheelPrivate : public QObject
             QColor color;
             QRectF rect;
         };
-        QPixmap paintColorwheel(int w, int h, qreal dpr);
+        QPixmap paintColorwheel(int w, int h, qreal dpr, bool segmented);
         QPixmap paintColorring(int w, int h, qreal dpr);
         QPixmap colorwheel;
+        QPixmap segmentedwheel;
         QPixmap colorring;
         QPixmap buffer;
         int width;
@@ -51,6 +52,7 @@ class ColorwheelPrivate : public QObject
         bool iqlineVisible;
         bool saturationVisible;
         bool labelsVisible;
+        bool segmented;
         qsizetype selected;
         QList<QPair<QColor, QPair<QString, QString>>> colors;
         QList<State> states;
@@ -69,6 +71,7 @@ ColorwheelPrivate::ColorwheelPrivate()
 , offsetFactor(-90)
 , iqlineVisible(false)
 , saturationVisible(false)
+, segmented(false)
 , labelsVisible(false)
 , selected(-1)
 {
@@ -77,8 +80,9 @@ ColorwheelPrivate::ColorwheelPrivate()
 void
 ColorwheelPrivate::init()
 {
-    colorwheel = paintColorwheel(width, height, 2.0); // hidpi
-    colorring = paintColorring(width, height, 2.0); // hidpi
+    colorwheel = paintColorwheel(width, height, 2.0, false);
+    segmentedwheel = paintColorwheel(width, height, 2.0, true);
+    colorring = paintColorring(width, height, 2.0);
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     // connect
@@ -109,9 +113,17 @@ ColorwheelPrivate::update()
         p.translate(-center.x(), -center.y());
         // colorwheel
         {
-            QPixmap pixmap = colorwheel.scaled(
-                rect.width(), rect.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation
-            );
+            QPixmap pixmap;
+            if (segmented) {
+                pixmap = segmentedwheel.scaled(
+                    rect.width(), rect.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation
+                );
+            } else {
+                pixmap = colorwheel.scaled(
+                    rect.width(), rect.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation
+                );
+                
+            }
             p.setOpacity(backgroundOpacity);
             p.drawPixmap(rect.toRect(), pixmap);
         }
@@ -150,10 +162,13 @@ ColorwheelPrivate::update()
                 {
                     p.resetTransform();
                     QFont font = p.font();
-                    font.setPointSizeF(font.pointSizeF() * 0.75);
-                    p.setFont(font);
-                    
                     int angle = 360-span;
+                    if (angle == r || angle == g || angle == b) // primary colors
+                        font.setPointSizeF(font.pointSizeF() * 0.9);
+                    else
+                        font.setPointSizeF(font.pointSizeF() * 0.70);
+                    
+                    p.setFont(font);
                     QFontMetrics metrics(p.font());
                     QString label;
                     if (angle == r)
@@ -187,7 +202,7 @@ ColorwheelPrivate::update()
                         pos.setY(pos.y() - rect.height());
                     
                     rect.moveTo(pos.toPoint());
-                    p.drawText(rect, text);
+                    p.drawText(rect, Qt::AlignCenter, text);
                 }
                 p.restore();
                 p.rotate(step);
@@ -225,7 +240,7 @@ ColorwheelPrivate::update()
     {
         p.save();
         p.setPen(QPen(brush, stroke/2));
-        p.rotate(-33);
+        p.rotate(-27);
         p.drawLine(0, 0, radius, 0);
         p.restore();
     }
@@ -365,7 +380,7 @@ ColorwheelPrivate::update()
 }
 
 QPixmap
-ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr)
+ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr, bool segmented)
 {
     QPointF center(w/2.0, h/2.0);
     int diameter = std::min(w, h);
@@ -375,26 +390,52 @@ ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr)
     colorwheel.setDevicePixelRatio(dpr);
     {
         QPainter p(&colorwheel);
-        // we draw the full 5760 pie spans to get a smooth good
-        // looking pie gradient without visible transitions
-        QRect rect = colorwheel.rect();
-        for (int span=0; span<5760; ++span) {
-            QColor color(QColor::fromHsvF(span/5760.0, 1.0, 1.0));
-            QRadialGradient gradient(center, radius);
-            gradient.setColorAt(0, Qt::white);
-            gradient.setColorAt(1, color);
-            QBrush brush(gradient);
-            QPen pen(brush, 1.0);
-            p.setPen(Qt::NoPen);
-            p.setBrush(brush);
-            p.drawPie(
-                QRect(rect.topLeft(), rect.size() / dpr), span, 1
-            );
+        if (segmented) {
+            int count = 12;
+            int span = 5760 / count; // 5760 spans represent 360 degrees in Qt's angle unit
+            QRect rect = colorwheel.rect();
+            for (int segment = 0; segment < count; ++segment) {
+                // Calculate the color for this segment
+                QColor color(QColor::fromHsvF((segment) / static_cast<qreal>(count), 1.0, 1.0));
+                // Set up a radial gradient with the color
+                QRadialGradient gradient(center, radius);
+                gradient.setColorAt(0, Qt::white);
+                gradient.setColorAt(1, color);
+                // Set the brush to the gradient
+                QBrush brush(gradient);
+                QPen pen(brush, 1.0);
+                p.setPen(Qt::NoPen);
+                p.setBrush(brush);
+
+                // Draw the pie slice
+                p.drawPie(
+                    QRect(rect.topLeft(), rect.size() / dpr),
+                    segment * span - (span / 2), span
+                );
+            }
+        } else {
+            // we draw the full 5760 pie spans to get a smooth good
+            // looking pie gradient without visible transitions
+            QRect rect = colorwheel.rect();
+            for (int span=0; span<5760; ++span) {
+                QColor color(QColor::fromHsvF(span/5760.0, 1.0, 1.0));
+                QRadialGradient gradient(center, radius);
+                gradient.setColorAt(0, Qt::white);
+                gradient.setColorAt(1, color);
+                QBrush brush(gradient);
+                QPen pen(brush, 1.0);
+                p.setPen(Qt::NoPen);
+                p.setBrush(brush);
+                p.drawPie(
+                    QRect(rect.topLeft(), rect.size() / dpr), span, 1
+                );
+            }
+            p.end();
         }
-        p.end();
     }
     return colorwheel;
 }
+
 QPixmap
 ColorwheelPrivate::paintColorring(int w, int h, qreal dpr)
 {
@@ -481,8 +522,6 @@ ColorwheelPrivate::mapToDegrees(qreal radians) const
 void
 ColorwheelPrivate::outputProfileChanged(const QString& outputProfile)
 {
-    qDebug() << "profile changed: " << outputProfile;
-    
     update();
     widget->update();
 }
@@ -616,6 +655,20 @@ void
 Colorwheel::setSaturationVisible(bool visible)
 {
     p->saturationVisible = visible;
+    p->update();
+    update();
+}
+
+bool
+Colorwheel::isSegmented() const
+{
+    return p->segmented;
+}
+
+void
+Colorwheel::setSegmented(bool segmented)
+{
+    p->segmented = segmented;
     p->update();
     update();
 }

@@ -23,6 +23,7 @@ class Colorwheel : public QWidget
         bool isIQLineVisible() const;
         bool isSaturationVisible() const;
         bool isLabelsVisible() const;
+        bool isSegmented() const;
         qsizetype selected() const;
         bool hasSelection() const;
         qreal zoomFactor() const;
@@ -36,6 +37,7 @@ class Colorwheel : public QWidget
         void setLabelsVisible(bool visible);
         void setMarkerSize(qreal size);
         void setSaturationVisible(bool visible);
+        void setSegmented(bool segmented);
         void setSelected(qsizetype selected);
         void setZoomFactor(qreal factor);
 
