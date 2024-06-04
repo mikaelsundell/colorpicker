@@ -2,24 +2,12 @@
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
 
-Introduction
-------------
-
-<img src="resources/Colorpicker.png" style="padding-bottom: 20px;" />
-
-Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
-
-|  Download        | Description |
-| ----------------| ----------- |
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg)
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg) | [Intel x86_64 macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg)
-
 Table of Contents
 =================
 
 - [ Colorpicker](#-colorpicker)
-  - [Introduction](#introduction)
 - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
       - [Quick start](#quick-start)
   - [Menu](#menu)
       - [Edit](#edit)
@@ -37,7 +25,18 @@ Table of Contents
   - [Build \& Package](#build--package)
   - [Web Resources](#web-resources)
   - [Copyright](#copyright)
--------------
+
+Introduction
+------------
+
+<img src="resources/Colorpicker.png" style="padding-bottom: 20px;" />
+
+Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
+
+|  Download        | Description |
+| ----------------| ----------- |
+|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg)
+|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg) | [Intel x86_64 macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg)
 
 #### Quick start
 
