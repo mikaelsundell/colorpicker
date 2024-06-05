@@ -98,7 +98,7 @@ Colors section
 The color wheel can be adjusted to fit your specific color requirements.
 
 - **IQ**: Provides an approximation of the vector scope IQ line in HSV color space to verify skin tones.
-- **2x Saturation**: Doubles the saturation values.
+- **2x**: Doubles the saturation values.
 - **Saturation**: Displays saturation percentages.
 - **Segmented**: Shows segmented colors instead of a gradient.
 - **Labels**: Displays labels for the colors.
