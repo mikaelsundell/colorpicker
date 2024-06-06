@@ -2,24 +2,24 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/mikaelsundell/colorpicker
 
-cmake_minimum_required( VERSION 3.27 )
-set( project_name "Colorpicker" )
+cmake_minimum_required (VERSION 3.27)
+set (project_name "Colorpicker")
 
-project( ${project_name} )
+project (${project_name})
 
 # config
 #list(APPEND CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}/lib/cmake")
 
 # packages
 set (qt6_modules Core PrintSupport Gui Widgets)
-find_package(Qt6 COMPONENTS ${qt6_modules} CONFIG REQUIRED)
+find_package (Qt6 COMPONENTS ${qt6_modules} CONFIG REQUIRED)
 set (CMAKE_AUTOMOC ON)
 set (CMAKE_AUTORCC ON)
 set (CMAKE_AUTOUIC ON)
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package( OpenCV CONFIG REQUIRED )
-find_package( Lcms2 REQUIRED )
+find_package (OpenCV CONFIG REQUIRED)
+find_package (Lcms2 REQUIRED)
 
 # sources
 set (app_sources
@@ -50,12 +50,12 @@ set (app_sources
 )
 
 # iccprofiles
-file( GLOB app_iccprofiles
+file (GLOB app_iccprofiles
     "iccprofiles/*.icc" 
 )
 
 # resources
-file( GLOB app_resources
+file (GLOB app_resources
     "resources/*.icns" 
     "resources/*.icc"
     "resources/*.css"
