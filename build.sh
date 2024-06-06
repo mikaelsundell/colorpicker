@@ -10,54 +10,59 @@ major_version=$(echo "$macos_version" | cut -d '.' -f 1)
 
 # signing
 sign_code=OFF
-code_sign_identity=""
-development_team_id=""
+developerid_identity=""
+mac_developer_identity=""
+mac_installer_identity=""
+provisioning_profile=""
+provisioning_profile_path=""
 
-# Create distribution.xml for the pkg file
-create_distribution_xml() {
-    local identifier="$1"
-    local version="$2"
-    local pkg_file="$3"
+sign_app() {
+    local bundle_path="$1"
+    local sign_type="$2"
+    local sign_identity="$3"
 
-    cat <<EOF > distribution.xml
-<?xml version="1.0" encoding="utf-8"?>
-<installer-gui-script minSpecVersion="1">
-    <title>Colorpicker</title>
-    <options customize="never" require-scripts="false"/>
-    <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
-    <volume-check>
-        <allowed-os-versions>
-            <os-version min="10.12"/>
-        </allowed-os-versions>
-    </volume-check>
-    <installation-check script="installerCheckScript()"/>
-    <script>
-        <![CDATA[
-        function installerCheckScript() {
-            if (system.version.ProductVersion < '10.12') {
-                my.result.title = 'Unsupported macOS version';
-                my.result.message = 'This package requires macOS 10.12 or later.';
-                my.result.type = 'Fatal';
-                return false;
-            }
-            return true;
-        }
-        ]]>
-    </script>
-    <choices-outline>
-        <line choice="default">
-            <line choice="application"/>
-        </line>
-    </choices-outline>
-    <choice id="default" title="Colorpicker">
-        <pkg-ref id="$identifier"/>
-    </choice>
-    <choice id="application" visible="false">
-        <pkg-ref id="$identifier"/>
-    </choice>
-    <pkg-ref id="$identifier" version="$version" onConclusion="none">$pkg_file</pkg-ref>
-</installer-gui-script>
-EOF
+    case "$sign_type" in
+        dylibs)
+            find "$bundle_path" -type f ! -path "*.framework/*" | while read -r file; do
+                file_type=$(file "$file")
+                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [[ "$file_type" == *"Mach-O universal binary"* ]]; then
+                    echo "signing dylib $file..."
+                    codesign --force --sign "$sign_identity" --timestamp "$file"
+                fi
+            done
+            ;;
+        frameworks)
+            find "$bundle_path" -type d -name "*.framework" | while read -r framework; do
+                echo "signing framework $framework..."
+                codesign --force --sign "$sign_identity" --timestamp "$framework"
+            done
+            ;;
+        executables)
+            find "$bundle_path" -type f | while read -r file; do
+                file_type=$(file "$file")
+                if [[ "$file_type" == *"Mach-O 64-bit executable"* ]]; then
+                    echo "signing executable $file with entitlements ..."
+                    codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "App.entitlements" "$file"
+                fi
+            done
+            ;;
+        *)
+            echo "unknown sign type: $sign_type"
+            exit 1
+            ;;
+    esac
+}
+
+verify_app() {
+    local bundle_path="$1"
+    find "$bundle_path" -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.bundle" -o -name "*.framework" -o -perm +111 \) | while read -r file; do
+        echo "verifying $file..."
+        if codesign --verify --verbose "$file"; then
+            echo "signature verification passed for $file"
+        else
+            echo "signature verification failed for $file"
+        fi
+    done
 }
 
 # check signing
@@ -68,10 +73,14 @@ parse_args() {
                 major_version="${1#*=}" ;;
             --sign)
                 sign_code=ON ;;
-            --deploy)
-                deploy=ON ;;
-            --pkg)
-                pkg=ON ;;
+            --provisioning=*)
+                provisioning_profile="${1#*=}" ;;
+            --provisioningpath=*)
+                provisioning_profile_path="${1#*=}" ;;
+            --github)
+                github=ON ;;
+            --appstore)
+                appstore=ON ;;
             *)
                 build_type="$1" # save it in build_type if it's not a recognized flag
                 ;;
@@ -89,23 +98,6 @@ fi
 export MACOSX_DEPLOYMENT_TARGET=$major_version
 export CMAKE_OSX_DEPLOYMENT_TARGET=$major_version
 
-# signing
-if [ "$sign_code" == "ON" ]; then
-    default_code_sign_identity=${CODE_SIGN_IDENTITY:-}
-    default_development_team_id=${DEVELOPMENT_TEAM_ID:-}
-
-    read -p "Enter Code Sign Identity [$default_code_sign_identity]: " input_code_sign_identity
-    code_sign_identity=${input_code_sign_identity:-$default_code_sign_identity}
-
-    if [[ ! "$code_sign_identity" == *"Developer ID"* ]] && [[ ! "$code_sign_identity" == *"3rd Party Mac Developer"* ]]; then
-        echo "Code Sign identity must contain 'Developer ID' or '3rd Party Mac Developer' to be a valid certificate."
-        exit 1
-    fi
-
-    read -p "Enter Development Team ID [$default_development_team_id]: " input_development_team_id
-    development_team_id=${input_development_team_id:-$default_development_team_id}
-fi
-
 # exit on error
 set -e 
 
@@ -120,6 +112,35 @@ fi
 
 echo "Building Colorpicker for $build_type"
 echo "---------------------------------"
+
+# signing
+if [ "$sign_code" == "ON" ]; then
+    default_developerid_identity=${DEVELOPERID_IDENTITY:-}
+    default_mac_developer_identity=${MAC_DEVELOPER_IDENTITY:-}
+    default_mac_installer_identity=${MAC_INSTALLER_IDENTITY:-}
+
+    read -p "enter Developer ID certificate identity [$default_developerid_identity]: " input_developerid_identity
+    developerid_identity=${input_developerid_identity:-$default_developerid_identity}
+
+    if [[ ! "$developerid_identity" == *"Developer ID"* ]]; then
+        echo "Developer ID certificate identity must contain 'Developer ID', required for github distribution."
+    fi
+
+    read -p "enter Mac Developer certificate Identity [$default_mac_developer_identity]: " input_mac_developer_identity
+    mac_developer_identity=${input_mac_developer_identity:-$default_mac_developer_identity}
+
+    if [[ ! "$mac_developer_identity" == *"3rd Party Mac Developer Application"* ]]; then
+        echo "Mac Developer installer identity must contain '3rd Party Mac Developer Installer', required for appstore distribution."
+    fi
+
+    read -p "enter Mac Installer certificate Identity [$default_mac_installer_identity]: " input_mac_installer_identity
+    mac_installer_identity=${input_mac_installer_identity:-$default_mac_installer_identity}
+
+    if [[ ! "$mac_installer_identity" == *"3rd Party Mac Developer Installer"* ]]; then
+        echo "Mac Developer installer identity must contain '3rd Party Mac Developer Installer', required for appstore distribution."
+    fi
+    echo ""
+fi
 
 # check if cmake is in the path
 if ! command -v cmake &> /dev/null; then
@@ -168,9 +189,14 @@ build_colorpicker() {
     xcode_type=$(echo "$build_type" | awk '{ print toupper(substr($0, 1, 1)) tolower(substr($0, 2)) }')
 
     # build
-    cmake .. -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -G Xcode && 
+    if [ -n "$provisioning_profile" ] && [ -n "$provisioning_profile_path" ]; then
+        cmake .. -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -DPROVISIONING_PROFILE="$provisioning_profile" -G Xcode
+    else
+        cmake .. -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -G Xcode
+    fi
     cmake --build . --config $xcode_type --parallel &&
-    if [ "$deploy" == "ON" ]; then
+
+    if [ "$github" == "ON" ]; then
         dmg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.dmg"
         if [ -f "$dmg_file" ]; then
             rm -f "$dmg_file"
@@ -178,47 +204,71 @@ build_colorpicker() {
 
         # deploy
         $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
-        if [ "$sign_code" == "ON" ]; then
-            codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
+
+        if [ -n "$developerid_identity" ]; then
+            if [ "$sign_code" == "ON" ]; then
+                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
+            fi
+        else 
+            echo "Developer ID identity must be set for github distribution, sign will be skipped."
         fi
 
         # deploydmg
         $script_dir/scripts/macdmg.sh -b "$xcode_type/Colorpicker.app" -d "$dmg_file"
-        if [ "$sign_code" == "ON" ]; then
-            codesign --force --deep --sign "$code_sign_identity" --timestamp --options runtime --verbose "$dmg_file"
+        if [ -n "$developerid_identity" ]; then
+            if [ "$sign_code" == "ON" ]; then
+                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime --verbose "$dmg_file"
+            fi
+        else 
+            echo "Developer ID identity must be set for github distribution, sign will be skipped."
         fi
     fi
 
-    if [ "$pkg" == "ON" ]; then
+    if [ "$appstore" == "ON" ]; then
         pkg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.pkg"
         if [ -f "$pkg_file" ]; then
             rm -f "$pkg_file"
         fi
 
+        # provisioning
+        if [ -n "$provisioning_profile" ] && [ -n "$provisioning_profile_path" ]; then
+            cp -f "$provisioning_profile_path" "$xcode_type/Colorpicker.app/Contents/embedded.provisionprofile"
+        else
+            echo "Provisioning profile and path must be set for appstore distribution, will be skipped."
+        fi
+
         # deploy
         $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
-        
-        # plist
-        plist_path="$xcode_type/Colorpicker.app/Contents/Info.plist"
-        if [ ! -f "$plist_path" ]; then
-            echo "pkg version and identifier could not be found, info.plist not found in $xcode_type/Colorpicker.app"
-            exit 1
+        if [ -n "$mac_developer_identity" ]; then
+            if [ "$sign_code" == "ON" ]; then
+                # entitlements
+                teamid=$(echo "$mac_developer_identity" | awk -F '[()]' '{print $2}')
+                applicationid=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$xcode_type/Colorpicker.app/Contents/Info.plist")
+                entitlements="App.entitlements"
+                echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
+                sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
+                # sign
+                sign_app "$xcode_type/Colorpicker.app" "dylibs" "$mac_developer_identity"
+                sign_app "$xcode_type/Colorpicker.app" "frameworks" "$mac_developer_identity"
+                sign_app "$xcode_type/Colorpicker.app" "executables" "$mac_developer_identity"
+                verify_app "$xcode_type/Colorpicker.app"
+                codesign --force --deep --sign "$mac_developer_identity" --entitlements $entitlements "$xcode_type/Colorpicker.app"
+                codesign --verify "$xcode_type/Colorpicker.app"
+            fi
+        else 
+            echo "Mac Developer identity must be set for appstore distribution, sign will be skipped."
         fi
-        version=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$plist_path")
-        identifier=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$plist_path")
 
-        # create pkg
-        pkgbuild --component "$xcode_type/Colorpicker.app" --identifier "$identifier" --version "$version" --install-location "/Applications" "intermediate.pkg"
-
-        # Create distribution.xml
-        create_distribution_xml "$identifier" "$version" "intermediate.pkg"
-
-        # Use productbuild to create the final pkg
-        productbuild --distribution distribution.xml --package-path . "$pkg_file"
-
+        # productbuild
         if [ "$sign_code" == "ON" ]; then
-            productsign --sign "$code_sign_identity" "$pkg_file" "$pkg_file.signed"
-            mv "$pkg_file.signed" "$pkg_file"
+            if [ -n "$mac_installer_identity" ]; then
+                productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --sign "${mac_installer_identity}" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
+            else 
+                echo "Mac Installer identity must be set for appstore distribution, sign will be skipped."
+                productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
+            fi  
+        else
+            productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
         fi
     fi
 }

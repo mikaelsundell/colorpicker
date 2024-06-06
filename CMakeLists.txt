@@ -7,9 +7,6 @@ set (project_name "Colorpicker")
 
 project (${project_name})
 
-# config
-#list(APPEND CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}/lib/cmake")
-
 # packages
 set (qt6_modules Core PrintSupport Gui Widgets)
 find_package (Qt6 COMPONENTS ${qt6_modules} CONFIG REQUIRED)
@@ -64,7 +61,7 @@ file (GLOB app_resources
 
 # bundle
 set (bundle_sources
-    "resources/MacOSXBundle.plist.in"
+    "${CMAKE_SOURCE_DIR}/resources/MacOSXBundle.plist.in"
 )
 
 if (APPLE)
@@ -73,9 +70,9 @@ if (APPLE)
     set (MACOSX_BUNDLE_INFO_STRING ${project_name})
     set (MACOSX_BUNDLE_BUNDLE_NAME ${project_name})
     set (MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
-    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.4")
-    set (MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
-    set (MACOSX_BUNDLE_BUNDLE_VERSION "1.0.4")
+    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.55")
+    set (MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0.5")
+    set (MACOSX_BUNDLE_BUNDLE_VERSION "1.0.55")
     set (MACOSX_BUNDLE_COPYRIGHT "Copyright 2022-present Contributors to the ${project_name} project")
     set (MACOSX_DEPLOYMENT_TARGET ${DEPLOYMENT_TARGET})
     set (CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
@@ -89,24 +86,17 @@ if (APPLE)
     add_definitions(-DGITHUBURL="https://github.com/mikaelsundell/colorpicker")
     set_target_properties(${project_name} PROPERTIES
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${MACOSX_BUNDLE_GUI_IDENTIFIER}"
+        XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET ${CMAKE_OSX_DEPLOYMENT_TARGET}
+        MACOSX_BUNDLE_INFO_PLIST ${bundle_sources}
     )
-    # code signing
-    if (SIGN_CODE)
-        if (CODE_SIGN_IDENTITY STREQUAL "" OR DEVELOPMENT_TEAM_ID STREQUAL "")
-            message (FATAL_ERROR "Code signing is enabled, but CODE_SIGN_IDENTITY or DEVELOPMENT_TEAM_ID is not set.")
-        else ()
-            message ("Code signing enabled for Xcode")
-            message ("  Sign identify: ${CODE_SIGN_IDENTITY}")
-            message ("  Development team: ${DEVELOPMENT_TEAM_ID}")
-        endif()
+    if (NOT PROVISIONING_PROFILE STREQUAL "")
         set_target_properties(${project_name} PROPERTIES
-            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${CODE_SIGN_IDENTITY}"
-            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${DEVELOPMENT_TEAM_ID}"
+            XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "${PROVISIONING_PROFILE}"
         )
     endif()
     set_target_properties(${project_name} PROPERTIES
         OUTPUT_NAME ${project_name}
-        MACOSX_FRAMEWORK_INFO_PLIST ${bundle_sources})
+    )
     target_compile_options (${project_name} PRIVATE -Wno-deprecated-register)
     target_include_directories (${project_name} PRIVATE ${LCMS2_INCLUDE_DIR})
     target_link_libraries (${project_name} 
