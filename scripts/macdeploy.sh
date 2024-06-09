@@ -1,9 +1,7 @@
 #!/bin/bash
-##  macdeploy.sh
-##  Colorman
-##
-##  Copyright (c) 2023 - present Mikael Sundell.
-##  All Rights Reserved.
+##  Copyright 2022-present Contributors to the colorpicker project.
+##  SPDX-License-Identifier: BSD-3-Clause
+##  https://github.com/mikaelsundell/colorpicker
 
 # usage
 
