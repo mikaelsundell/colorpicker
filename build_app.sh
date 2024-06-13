@@ -25,7 +25,7 @@ sign_app() {
         dylibs)
             find "$bundle_path" -type f ! -path "*.framework/*" | while read -r file; do
                 file_type=$(file "$file")
-                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [[ "$file_type" == *"Mach-O universal binary"* ]]; then
+                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [ "$file_type" == *"Mach-O 64-bit bundle"* ]]; then
                     echo "signing dylib $file ..."
                     codesign --force --sign "$sign_identity" --timestamp "$file"
                 fi
