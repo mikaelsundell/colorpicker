@@ -3,5 +3,6 @@
 build/
 build.debug/
 build.release/
+resources/App.entitlements
 Colorpicker_*
 Colorpicker.app

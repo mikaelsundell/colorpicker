@@ -23,7 +23,7 @@ sign_app() {
         dylibs)
             find "$bundle_path" -type f ! -path "*.framework/*" | while read -r file; do
                 file_type=$(file "$file")
-                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [[ "$file_type" == *"Mach-O universal binary"* ]]; then
+                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [[ "$file_type" == *"Mach-O 64-bit bundle"* ]]; then
                     merge_file="${file/$bundle_path/$merge_path}"
                     if [ -f "$merge_file" ]; then
                         echo "merging dylib $file with $merge_file version ..."
@@ -171,7 +171,7 @@ build_colorpicker() {
         exit 1
     fi
 
-     pkg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_universal.pkg"
+     pkg_file="$script_dir/Colorpicker_macOS${major_version}_universal.pkg"
     if [ -f "$pkg_file" ]; then
         rm -f "$pkg_file"
     fi
