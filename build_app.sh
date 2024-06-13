@@ -1,7 +1,7 @@
 #!/bin/bash
-##  Copyright 2022-present Contributors to the colorpicker project.
+##  Copyright 2022-present Contributors to the 3rdparty project.
 ##  SPDX-License-Identifier: BSD-3-Clause
-##  https://github.com/mikaelsundell/colorpicker
+##  https://github.com/mikaelsundell/3rdparty
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 machine_arch=$(uname -m)
@@ -42,7 +42,11 @@ sign_app() {
                 file_type=$(file "$file")
                 if [[ "$file_type" == *"Mach-O 64-bit executable"* ]]; then
                     echo "signing executable $file with entitlements ..."
-                    codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "App.entitlements" "$file"
+
+
+                    echo codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
+
+                    codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
                 fi
             done
             ;;
@@ -244,7 +248,7 @@ build_colorpicker() {
                 # entitlements
                 teamid=$(echo "$mac_developer_identity" | awk -F '[()]' '{print $2}')
                 applicationid=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$xcode_type/Colorpicker.app/Contents/Info.plist")
-                entitlements="resources/App.entitlements"
+                entitlements="$script_dir/resources/App.entitlements"
                 echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
                 sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
                 # sign
