@@ -33,10 +33,8 @@ Introduction
 
 Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
-|  Download        | Description |
-| ----------------| ----------- |
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg) | [Apple Silicon macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_arm64_release.dmg)
-|  [<img src="resources/Download.png" valign="middle" alt="Icon" width="16" height="16"> Colorpicker v1.0.3](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg) | [Intel x86_64 macOS12+](https://github.com/mikaelsundell/colorpicker/releases/download/release-v1.0.3/Colorpicker_macOS12_x86_64_release.dmg)
+<a href="https://apps.apple.com/se/app/colorpicker-colors-in-harmony/id6503638316?l=en-GB&mt=12"><img src="resources/appstore/Badge.png" valign="middle" alt="Icon" width="140"></a>
+
 
 #### Quick start
 
