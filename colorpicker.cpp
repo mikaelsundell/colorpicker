@@ -2053,7 +2053,6 @@ ColorpickerPrivate::pdf()
         printer.setColorMode(QPrinter::Color);
         printer.setResolution(300);
         doc->print(&printer);
-        mac::console(filename);
         QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
     }
 }
