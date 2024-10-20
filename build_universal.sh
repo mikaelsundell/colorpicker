@@ -29,6 +29,7 @@ sign_app() {
                         echo "merging dylib $file with $merge_file version ..."
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
+                        xattr -c "$file"
                     fi
                     echo "signing dylib $file ..."
                     codesign --force --sign "$sign_identity" --timestamp "$file"
@@ -47,6 +48,7 @@ sign_app() {
                             echo "merging $binary with $merge_binary version ..."
                             lipo -create "$binary" "$merge_binary" -output "$binary.tmp"
                             mv "$binary.tmp" "$binary"
+                            xattr -c "$file"
                         fi
                     done
                 else
@@ -66,6 +68,7 @@ sign_app() {
                         echo "merging $file with $merge_file version ..."
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
+                        xattr -c "$file"
                     fi
                     echo "signing executable $file with entitlements ..."
                     codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
@@ -91,7 +94,7 @@ verify_app() {
         else
             echo "signature verification failed for $file"
         fi
-                echo ""
+            echo ""
     done
 }
 
@@ -172,7 +175,7 @@ build_colorpicker() {
         exit 1
     fi
 
-     pkg_file="$script_dir/Colorpicker_macOS${major_version}_universal.pkg"
+    pkg_file="$script_dir/Colorpicker_macOS${major_version}_universal.pkg"
     if [ -f "$pkg_file" ]; then
         rm -f "$pkg_file"
     fi
@@ -190,12 +193,12 @@ build_colorpicker() {
     fi
 
     cp -RP "$arm64_app" "$build_app"
+    xattr -rc "$build_app"
 
     if [ -n "$mac_developer_identity" ]; then
         if [ "$sign_code" == "ON" ]; then
             # entitlements
             teamid=$(echo "$mac_developer_identity" | awk -F '[()]' '{print $2}')
-            echo 
             applicationid=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$build_app/Contents/Info.plist")
             entitlements="resources/App.entitlements"
             echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
