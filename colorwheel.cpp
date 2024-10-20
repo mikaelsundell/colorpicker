@@ -80,6 +80,7 @@ ColorwheelPrivate::ColorwheelPrivate()
 void
 ColorwheelPrivate::init()
 {
+    widget->setAttribute(Qt::WA_TranslucentBackground);
     colorwheel = paintColorwheel(width, height, 2.0, false);
     segmentedwheel = paintColorwheel(width, height, 2.0, true);
     colorring = paintColorring(width, height, 2.0);
@@ -395,19 +396,15 @@ ColorwheelPrivate::paintColorwheel(int w, int h, qreal dpr, bool segmented)
             int span = 5760 / count; // 5760 spans represent 360 degrees in Qt's angle unit
             QRect rect = colorwheel.rect();
             for (int segment = 0; segment < count; ++segment) {
-                // Calculate the color for this segment
+                // calculate the color for this segment
                 QColor color(QColor::fromHsvF((segment) / static_cast<qreal>(count), 1.0, 1.0));
-                // Set up a radial gradient with the color
                 QRadialGradient gradient(center, radius);
                 gradient.setColorAt(0, Qt::white);
                 gradient.setColorAt(1, color);
-                // Set the brush to the gradient
                 QBrush brush(gradient);
                 QPen pen(brush, 1.0);
                 p.setPen(Qt::NoPen);
                 p.setBrush(brush);
-
-                // Draw the pie slice
                 p.drawPie(
                     QRect(rect.topLeft(), rect.size() / dpr),
                     segment * span - (span / 2), span

@@ -1101,7 +1101,7 @@ ColorpickerPrivate::loadSettings()
     ui->iqline->setChecked(settings.value("iqLine", ui->iqline->isChecked()).toBool());
     ui->colorWheel->setIQLineVisible(ui->iqline->isChecked());
     ui->zoom->setChecked(settings.value("zoom", ui->zoom->isChecked()).toBool());
-    ui->colorWheel->setZoomFactor(ui->iqline->isChecked() ? 2.0 : 1.0);
+    ui->colorWheel->setZoomFactor(ui->zoom->isChecked() ? 2.0 : 1.0);
     ui->saturation->setChecked(settings.value("saturation", ui->saturation->isChecked()).toBool());
     ui->colorWheel->setSaturationVisible(ui->saturation->isChecked());
     ui->segmented->setChecked(settings.value("segmented", ui->segmented->isChecked()).toBool());
@@ -1824,10 +1824,9 @@ ColorpickerPrivate::pdf()
     
     QString filename =
         QString("%1/Colorpicker %2.pdf").
-        arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
+        //arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
+        arg(QStandardPaths::writableLocation(QStandardPaths::TempLocation)).
         arg(datestamp);
-    
-    std::cout << "ColorpickerPrivate::pdf: 2" << std::endl;
     
     // document
     QTextDocument* doc = new QTextDocument;
@@ -1837,10 +1836,13 @@ ColorpickerPrivate::pdf()
     
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
-    QBrush text = window->palette().text();
-    QBrush base = window->palette().base();
-    QRgb foreground = transform->map(text.color().rgb(), transform->outputProfile(), transform->inputProfile());
-    QRgb background = transform->map(base.color().rgb(), transform->outputProfile(), transform->inputProfile());
+    QBrush palettetext = window->palette().text();
+    QBrush palettebase = window->palette().base();
+    QRgb text = transform->map(palettetext.color().rgb(), transform->outputProfile(), transform->inputProfile());
+    QRgb base = transform->map(palettebase.color().rgb(), transform->outputProfile(), transform->inputProfile());
+    QTextCharFormat headerformat;
+    headerformat.setForeground(QBrush(QColor::fromRgb(text)));
+    headerformat.setBackground(QBrush(QColor::fromRgb(base)));
     // colorpicker
     {
         QDir resources(QApplication::applicationDirPath() + "/../Resources");
@@ -1857,9 +1859,6 @@ ColorpickerPrivate::pdf()
     // table
     {
         QTextTable* table = cursor.insertTable(1, 1);
-        QTextCharFormat headerformat;
-        headerformat.setForeground(QBrush(QColor::fromRgb(foreground)));
-        headerformat.setBackground(QBrush(QColor::fromRgb(background)));
         // format
         {
             qreal padding = 5;
@@ -1872,6 +1871,7 @@ ColorpickerPrivate::pdf()
             format.setBorderCollapse(true);
             format.setCellPadding(padding);
             format.setColumnWidthConstraints(columns);
+            format.setBackground(QColor(9, 12, 19));
             table->setFormat(format);
         }
         // colorpicker
@@ -1881,10 +1881,11 @@ ColorpickerPrivate::pdf()
             cell.setFormat(headerformat);
             QPixmap widget(ui->colorWheel->size()*ui->colorWheel->devicePixelRatio());
             widget.setDevicePixelRatio(ui->colorWheel->devicePixelRatio());
+            widget.fill(palettebase.color()); // fill with palette before transform
             ui->colorWheel->render(&widget);
             QString format = "png";
-            
             QImage image = transform->map(widget.toImage(), transform->outputProfile(), transform->inputProfile());
+            image.setColorSpace(QColorSpace::SRgb);
             QTextImageFormat imageformat;
             imageformat.setWidth(ui->colorWheel->width()/2);
             imageformat.setHeight(ui->colorWheel->height()/2);
@@ -1903,10 +1904,6 @@ ColorpickerPrivate::pdf()
     // table
     {
         QTextTable* table = cursor.insertTable(static_cast<int>(states.count()) + 1, 5);
-        QTextCharFormat headerformat;
-        headerformat.setForeground(window->palette().text());
-        headerformat.setBackground(window->palette().base());
-        
         // format
         {
             qreal padding = 5;
@@ -2066,6 +2063,7 @@ ColorpickerPrivate::pdf()
         mac::console("deploy: 8");
         doc->print(&printer);
         mac::console("deploy: 9");
+        mac::console(filename);
         QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
         mac::console("deploy: 10");
     }
