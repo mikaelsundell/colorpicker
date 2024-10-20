@@ -32,7 +32,6 @@ sign_app() {
                     fi
                     echo "signing dylib $file ..."
                     codesign --force --sign "$sign_identity" --timestamp "$file"
-                    chmod o+r "$file"
                     echo ""
                 fi
             done
@@ -55,7 +54,6 @@ sign_app() {
                 fi
                 echo "signing framework $framework ..."
                 codesign --force --sign "$sign_identity" --timestamp "$framework"
-                chmod o+r "$file"
                 echo ""
             done
             ;;
@@ -71,7 +69,6 @@ sign_app() {
                     fi
                     echo "signing executable $file with entitlements ..."
                     codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
-                    chmod o+r "$file"
                     echo ""
                 fi
             done
@@ -89,11 +86,12 @@ verify_app() {
         echo "verifying $file..."
         if codesign --verify --verbose "$file"; then
             echo "signature verification passed for $file"
-            echo ""
+            echo "permissions updated for $file"
+            chmod o+r "$file"
         else
             echo "signature verification failed for $file"
-            echo ""
         fi
+                echo ""
     done
 }
 
