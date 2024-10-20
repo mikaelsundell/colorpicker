@@ -3,6 +3,7 @@
 // https://github.com/mikaelsundell/colorpicker
 
 #pragma once
+#include <QString>
 #include <QWidget>
 
 namespace mac
@@ -21,4 +22,5 @@ namespace mac
     QString grabIccProfileUrl(WId wid);
     QPoint fromNativeCursor(float x, float y);
     QPointF toNativeCursor(int x, int y);
+    void console(QString message);
 }

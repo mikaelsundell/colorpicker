@@ -322,5 +322,11 @@ namespace mac
         qreal reverse = screen->geometry().height() - cursor.y();
         return QPointF(cursor.x(), reverse);
     }
+
+    void console(QString message)
+    {
+        NSString *nsMessage = message.toNSString();
+        NSLog(@"%@", nsMessage);
+    }
 }
 

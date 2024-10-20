@@ -1827,6 +1827,8 @@ ColorpickerPrivate::pdf()
         arg(QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).
         arg(datestamp);
     
+    std::cout << "ColorpickerPrivate::pdf: 2" << std::endl;
+    
     // document
     QTextDocument* doc = new QTextDocument;
     doc->setDocumentMargin(10);
@@ -1839,7 +1841,6 @@ ColorpickerPrivate::pdf()
     QBrush base = window->palette().base();
     QRgb foreground = transform->map(text.color().rgb(), transform->outputProfile(), transform->inputProfile());
     QRgb background = transform->map(base.color().rgb(), transform->outputProfile(), transform->inputProfile());
-
     // colorpicker
     {
         QDir resources(QApplication::applicationDirPath() + "/../Resources");
@@ -2045,18 +2046,28 @@ ColorpickerPrivate::pdf()
             }
         }
     }
+    mac::console("deploy: 1");
     cursor.movePosition(QTextCursor::End);
     cursor.insertBlock();
     // print
     {
+        mac::console("deploy: 2");
         QPrinter printer(QPrinter::HighResolution);
+        mac::console("deploy: 3");
         printer.setOutputFormat(QPrinter::PdfFormat);
+        mac::console("deploy: 4");
         printer.setOutputFileName(filename);
+        mac::console("deploy: 5");
         printer.setPageSize(QPageSize::A4);
+        mac::console("deploy: 6");
         printer.setColorMode(QPrinter::Color);
+        mac::console("deploy: 7");
         printer.setResolution(300);
+        mac::console("deploy: 8");
         doc->print(&printer);
+        mac::console("deploy: 9");
         QDesktopServices::openUrl(QUrl::fromLocalFile(filename));
+        mac::console("deploy: 10");
     }
 }
 
