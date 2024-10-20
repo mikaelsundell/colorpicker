@@ -1833,10 +1833,17 @@ ColorpickerPrivate::pdf()
     QTextCursor cursor(doc);
     cursor.movePosition(QTextCursor::Start);
     
+    // icc profile
+    ICCTransform* transform = ICCTransform::instance();
+    QBrush text = window->palette().text();
+    QBrush base = window->palette().base();
+    QRgb foreground = transform->map(text.color().rgb(), transform->outputProfile(), transform->inputProfile());
+    QRgb background = transform->map(base.color().rgb(), transform->outputProfile(), transform->inputProfile());
+
     // colorpicker
     {
         QDir resources(QApplication::applicationDirPath() + "/../Resources");
-        QString image = resources.absolutePath() + "/AppIcon.png";
+        QString image = resources.absolutePath() + "/AppIcon.tiff";
         QTextImageFormat imageformat;
         imageformat.setName(image);
         imageformat.setWidth(64);
@@ -1848,11 +1855,10 @@ ColorpickerPrivate::pdf()
     }
     // table
     {
-        QTextTable* table = cursor.insertTable(2, 1);
+        QTextTable* table = cursor.insertTable(1, 1);
         QTextCharFormat headerformat;
-        headerformat.setForeground(window->palette().text());
-        headerformat.setBackground(window->palette().base());
-        
+        headerformat.setForeground(QBrush(QColor::fromRgb(foreground)));
+        headerformat.setBackground(QBrush(QColor::fromRgb(background)));
         // format
         {
             qreal padding = 5;
@@ -1872,19 +1878,11 @@ ColorpickerPrivate::pdf()
             QTextTableCell cell = table->cellAt(0, 0);
             QTextCursor cellcursor = cell.firstCursorPosition();
             cell.setFormat(headerformat);
-            cellcursor.insertHtml(QString("<h5 style='color:rgb(255, 255, 255)'>Colors</h5>"));
-        }
-        // image
-        {
-            QTextTableCell cell = table->cellAt(1, 0);
-            QTextCursor cellcursor = cell.firstCursorPosition();
             QPixmap widget(ui->colorWheel->size()*ui->colorWheel->devicePixelRatio());
             widget.setDevicePixelRatio(ui->colorWheel->devicePixelRatio());
             ui->colorWheel->render(&widget);
             QString format = "png";
             
-            // icc profile
-            ICCTransform* transform = ICCTransform::instance();
             QImage image = transform->map(widget.toImage(), transform->outputProfile(), transform->inputProfile());
             QTextImageFormat imageformat;
             imageformat.setWidth(ui->colorWheel->width()/2);
@@ -1892,7 +1890,10 @@ ColorpickerPrivate::pdf()
             imageformat.setName(QString("data:image/%1;base64,%2")
                 .arg(format)
                 .arg(asBase64(image, format)));
-            
+        
+            QTextBlockFormat blockFormat;
+            blockFormat.setAlignment(Qt::AlignHCenter);
+            cellcursor.setBlockFormat(blockFormat);
             cellcursor.insertImage(imageformat);
         }
     }

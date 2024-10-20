@@ -89,7 +89,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label">
+          <widget class="QLabel" name="label1">
            <property name="text">
             <string>Display</string>
            </property>
@@ -743,7 +743,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label">
+          <widget class="QLabel" name="label2">
            <property name="text">
             <string>Colors</string>
            </property>
@@ -815,7 +815,7 @@
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_12">
             <item>
-             <widget class="QLabel" name="label">
+             <widget class="QLabel" name="label3">
               <property name="font">
                <font>
                 <pointsize>10</pointsize>
