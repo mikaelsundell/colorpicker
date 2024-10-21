@@ -1,11 +1,11 @@
-# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50" hspace="10">Color picker: Colors in harmony #
+# <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50" hspace="10">Color picker: Stay in harmony #
 
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
 
 Table of Contents
 =================
 
-- [Color picker: Colors in harmony](#color-picker-colors-in-harmony)
+- [Color picker: Stay in harmony](#color-picker-stay-in-harmony)
 - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
       - [Quick start](#quick-start)
