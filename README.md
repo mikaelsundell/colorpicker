@@ -34,7 +34,7 @@ Introduction
 Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
 <a href="https://apps.apple.com/se/app/colorpicker-colors-in-harmony/id6503638316?l=en-GB&mt=12" target="_blank" style="cursor: pointer;">
-    <img src="resources/appstore/Badge.png" valign="middle" alt="Icon" width="140">
+    <img src="resources/AppStore/Badge.png" valign="middle" alt="Icon" width="140">
 </a>
 
 #### Quick start
