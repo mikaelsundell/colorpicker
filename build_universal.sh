@@ -13,7 +13,8 @@ sign_code=OFF
 mac_developer_identity=""
 mac_installer_identity=""
 
-sign_app() {
+# merge
+merge_app() {
     local bundle_path="$1"
     local merge_path="$2"
     local sign_type="$3"
@@ -187,10 +188,9 @@ build_colorpicker() {
             entitlements="resources/App.entitlements"
             echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
             sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
-            # sign
-            sign_app "$build_app" "$x86_64_app" "dylibs" "$mac_developer_identity"
-            sign_app "$build_app" "$x86_64_app" "frameworks" "$mac_developer_identity"
-            sign_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
+            merge_app "$build_app" "$x86_64_app" "dylibs" "$mac_developer_identity"
+            merge_app "$build_app" "$x86_64_app" "frameworks" "$mac_developer_identity"
+            merge_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
             permission_app "$build_app"
             codesign --force --deep --sign "$mac_developer_identity" "$build_app"
             codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Colorpicker"

@@ -16,56 +16,12 @@ mac_installer_identity=""
 provisioning_profile=""
 provisioning_profile_path=""
 
-sign_app() {
-    local bundle_path="$1"
-    local sign_type="$2"
-    local sign_identity="$3"
-
-    case "$sign_type" in
-        dylibs)
-            find "$bundle_path" -type f ! -path "*.framework/*" | while read -r file; do
-                file_type=$(file "$file")
-                if [[ "$file_type" == *"Mach-O 64-bit dynamically linked shared library"* ]] || [[ "$file_type" == *"Mach-O 64-bit bundle"* ]]; then
-                    echo "signing dylib $file ..."
-                    codesign --force --sign "$sign_identity" --timestamp "$file"
-                fi
-            done
-            ;;
-        frameworks)
-            find "$bundle_path" -type d -name "*.framework" | while read -r framework; do
-                echo "signing framework $framework ..."
-                codesign --force --sign "$sign_identity" --timestamp "$framework"
-            done
-            ;;
-        executables)
-            find "$bundle_path" -type f | while read -r file; do
-                file_type=$(file "$file")
-                if [[ "$file_type" == *"Mach-O 64-bit executable"* ]]; then
-                    echo "signing executable $file with entitlements ..."
-
-
-                    echo codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
-
-                    codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
-                fi
-            done
-            ;;
-        *)
-            echo "unknown sign type: $sign_type"
-            exit 1
-            ;;
-    esac
-}
-
-verify_app() {
+# permissions
+permission_app() {
     local bundle_path="$1"
     find "$bundle_path" -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.bundle" -o -name "*.framework" -o -perm +111 \) | while read -r file; do
-        echo "verifying $file..."
-        if codesign --verify --verbose "$file"; then
-            echo "signature verification passed for $file"
-        else
-            echo "signature verification failed for $file"
-        fi
+        echo "setting permissions for $file..."
+        chmod o+r "$file"
     done
 }
 
@@ -251,13 +207,10 @@ build_colorpicker() {
                 entitlements="$script_dir/resources/App.entitlements"
                 echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
                 sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
-                # sign
-                sign_app "$xcode_type/Colorpicker.app" "dylibs" "$mac_developer_identity"
-                sign_app "$xcode_type/Colorpicker.app" "frameworks" "$mac_developer_identity"
-                sign_app "$xcode_type/Colorpicker.app" "executables" "$mac_developer_identity"
-                verify_app "$xcode_type/Colorpicker.app"
-                codesign --force --deep --sign "$mac_developer_identity" --entitlements $entitlements "$xcode_type/Colorpicker.app"
-                codesign --verify "$xcode_type/Colorpicker.app"
+                permission_app "$build_app"
+                codesign --force --deep --sign "$mac_developer_identity" "$build_app"
+                codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Colorpicker"
+                codesign --verify "$build_app"
             fi
         else 
             echo "Mac Developer identity must be set for appstore distribution, sign will be skipped."
