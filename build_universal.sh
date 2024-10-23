@@ -29,10 +29,7 @@ sign_app() {
                         echo "merging dylib $file with $merge_file version ..."
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
-                        xattr -c "$file"
                     fi
-                    echo "signing dylib $file ..."
-                    codesign --force --sign "$sign_identity" --timestamp "$file"
                     echo ""
                 fi
             done
@@ -48,14 +45,11 @@ sign_app() {
                             echo "merging $binary with $merge_binary version ..."
                             lipo -create "$binary" "$merge_binary" -output "$binary.tmp"
                             mv "$binary.tmp" "$binary"
-                            xattr -c "$file"
                         fi
                     done
                 else
                     echo -e "framework $merge_framework does not exist, will not be merged"
                 fi
-                echo "signing framework $framework ..."
-                codesign --force --sign "$sign_identity" --timestamp "$framework"
                 echo ""
             done
             ;;
@@ -68,10 +62,7 @@ sign_app() {
                         echo "merging $file with $merge_file version ..."
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
-                        xattr -c "$file"
                     fi
-                    echo "signing executable $file with entitlements ..."
-                    codesign --force --sign "$sign_identity" --timestamp --options runtime --entitlements "$script_dir/resources/App.entitlements" "$file"
                     echo ""
                 fi
             done
@@ -83,22 +74,16 @@ sign_app() {
     esac
 }
 
-verify_app() {
+# permissions
+permission_app() {
     local bundle_path="$1"
     find "$bundle_path" -type f \( -name "*.dylib" -o -name "*.so" -o -name "*.bundle" -o -name "*.framework" -o -perm +111 \) | while read -r file; do
-        echo "verifying $file..."
-        if codesign --verify --verbose "$file"; then
-            echo "signature verification passed for $file"
-            echo "permissions updated for $file"
-            chmod o+r "$file"
-        else
-            echo "signature verification failed for $file"
-        fi
-            echo ""
+        echo "setting permissions for $file..."
+        chmod o+r "$file"
     done
 }
 
-# check signing
+# parse arguments
 parse_args() {
     while [[ "$#" -gt 0 ]]; do
         case $1 in
@@ -192,8 +177,7 @@ build_colorpicker() {
         fi
     fi
 
-    cp -RP "$arm64_app" "$build_app"
-    xattr -rc "$build_app"
+    cp -RPp "$arm64_app" "$build_app"
 
     if [ -n "$mac_developer_identity" ]; then
         if [ "$sign_code" == "ON" ]; then
@@ -207,9 +191,9 @@ build_colorpicker() {
             sign_app "$build_app" "$x86_64_app" "dylibs" "$mac_developer_identity"
             sign_app "$build_app" "$x86_64_app" "frameworks" "$mac_developer_identity"
             sign_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
-            verify_app "$build_app"
-            echo codesign --force --deep --sign "$mac_developer_identity" --entitlements $entitlements "$build_app"
-            codesign --force --deep --sign "$mac_developer_identity" --entitlements $entitlements "$build_app"
+            permission_app "$build_app"
+            codesign --force --deep --sign "$mac_developer_identity" "$build_app"
+            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Colorpicker"
             codesign --verify "$build_app"
         fi
     else 
@@ -219,6 +203,7 @@ build_colorpicker() {
     # productbuild
     if [ "$sign_code" == "ON" ]; then
         if [ -n "$mac_installer_identity" ]; then
+            echo "Signing package with Mac installer identity"
             productbuild --component "$build_app" "/Applications" --sign "${mac_installer_identity}" --product "$build_app/Contents/Info.plist" "$pkg_file" 
         else 
             echo "Mac Installer identity must be set for appstore distribution, sign will be skipped."

@@ -86,6 +86,7 @@ class ColorpickerPrivate : public QObject
         void update();
         void view();
         void widget();
+        void buttons();
         void profile();
         void blank();
         void activate();
@@ -217,7 +218,6 @@ class ColorpickerPrivate : public QObject
                 QList<QColor> colors;
                 QList<QPoint> positions;
         };
-    
         QRect grabRect(QPoint cursor);
         QImage grabBuffer(QRect rect);
         Palette grabPalette(QImage image);
@@ -580,16 +580,13 @@ ColorpickerPrivate::grabPalette(QImage image)
         {
             double maxmindistance = 0;
             int candidateindex = -1;
-            for (int i = 0; i < centers.rows; ++i)
-                {
+            for (int i = 0; i < centers.rows; ++i) {
                 if (selectedindices.find(i) != selectedindices.end()) continue;
                 double minDistance = std::numeric_limits<double>::max();
-                for (int j : selectedindices)
-                {
+                for (int j : selectedindices) {
                     minDistance = std::min(minDistance, distances[i][j]);
                 }
-                if (minDistance > maxmindistance)
-                {
+                if (minDistance > maxmindistance) {
                     maxmindistance = minDistance;
                     candidateindex = i;
                 }
@@ -800,8 +797,7 @@ ColorpickerPrivate::widget()
     // color wheel
     {
         QList<QPair<QColor,QPair<QString,QString>>> colors = asColors();
-        if (active)
-        {
+        if (active) {
             if (dragcolors.count() > 0) {
                 QString iccCurrentProfile = iccProfile;
                 if (!iccCurrentProfile.length()) {
@@ -846,6 +842,25 @@ ColorpickerPrivate::widget()
     if (mode == Mode::Drag) {
         dragger->update(cursor);
     }
+    buttons();
+}
+
+void
+ColorpickerPrivate::buttons()
+{
+    bool enabled = false;
+    if (states.size()) {
+        enabled = true;
+    }
+    ui->clear->setEnabled(enabled);
+    ui->toggleClear->setEnabled(enabled);
+    ui->copyRGBAsText->setEnabled(enabled);
+    ui->copyHSVAsText->setEnabled(enabled);
+    ui->copyHSLAsText->setEnabled(enabled);
+    ui->copyHexAsText->setEnabled(enabled);
+    ui->copyIccAsText->setEnabled(enabled);
+    ui->copyColorAsBitmap->setEnabled(enabled);
+    ui->pdf->setEnabled(enabled);
 }
 
 void
