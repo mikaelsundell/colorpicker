@@ -207,10 +207,11 @@ build_colorpicker() {
                 entitlements="$script_dir/resources/App.entitlements"
                 echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
                 sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
-                permission_app "$build_app"
-                codesign --force --deep --sign "$mac_developer_identity" "$build_app"
-                codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Colorpicker"
-                codesign --verify "$build_app"
+                echo permission_app "$xcode_type/Colorpicker.app"
+                permission_app "$xcode_type/Colorpicker.app"
+                codesign --force --deep --sign "$mac_developer_identity" "$xcode_type/Colorpicker.app"
+                codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$xcode_type/Colorpicker.app/Contents/MacOS/Colorpicker"
+                codesign --verify "$xcode_type/Colorpicker.app"
             fi
         else 
             echo "Mac Developer identity must be set for appstore distribution, sign will be skipped."
@@ -219,6 +220,7 @@ build_colorpicker() {
         # productbuild
         if [ "$sign_code" == "ON" ]; then
             if [ -n "$mac_installer_identity" ]; then
+                echo "Signing package with Mac installer identity"
                 productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --sign "${mac_installer_identity}" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
             else 
                 echo "Mac Installer identity must be set for appstore distribution, sign will be skipped."
