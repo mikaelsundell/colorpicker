@@ -7,6 +7,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 machine_arch=$(uname -m)
 macos_version=$(sw_vers -productVersion)
 major_version=$(echo "$macos_version" | cut -d '.' -f 1)
+app_name="Color Picker"
+pkg_name="colorpicker"
 
 # signing
 sign_code=OFF
@@ -161,7 +163,7 @@ build_colorpicker() {
         exit 1
     fi
 
-    pkg_file="$script_dir/Colorpicker_macOS${major_version}_universal.pkg"
+    pkg_file="$script_dir/${pkg_name}_macOS${major_version}_universal.pkg"
     if [ -f "$pkg_file" ]; then
         rm -f "$pkg_file"
     fi
@@ -193,7 +195,7 @@ build_colorpicker() {
             merge_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
             permission_app "$build_app"
             codesign --force --deep --sign "$mac_developer_identity" "$build_app"
-            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Color Picker"
+            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/${app_name}"
             codesign --verify "$build_app"
         fi
     else 
