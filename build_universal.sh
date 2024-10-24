@@ -193,7 +193,7 @@ build_colorpicker() {
             merge_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
             permission_app "$build_app"
             codesign --force --deep --sign "$mac_developer_identity" "$build_app"
-            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Colorpicker"
+            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/Color Picker"
             codesign --verify "$build_app"
         fi
     else 
