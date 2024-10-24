@@ -1,7 +1,7 @@
 #!/bin/bash
-##  Copyright 2022-present Contributors to the 3rdparty project.
+##  Copyright 2022-present Contributors to the colorpicker project.
 ##  SPDX-License-Identifier: BSD-3-Clause
-##  https://github.com/mikaelsundell/3rdparty
+##  https://github.com/mikaelsundell/colorpicker
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 machine_arch=$(uname -m)
@@ -163,18 +163,18 @@ build_colorpicker() {
         fi
 
         # deploy
-        $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
+        $script_dir/scripts/macdeploy.sh -b "$xcode_type/Color Picker.app" -m "$prefix/bin/macdeployqt"
 
         if [ -n "$developerid_identity" ]; then
             if [ "$sign_code" == "ON" ]; then
-                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime "$xcode_type/Colorpicker.app"
+                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime "$xcode_type/Color Picker.app"
             fi
         else 
             echo "Developer ID identity must be set for github distribution, sign will be skipped."
         fi
 
         # deploydmg
-        $script_dir/scripts/macdmg.sh -b "$xcode_type/Colorpicker.app" -d "$dmg_file"
+        $script_dir/scripts/macdmg.sh -b "$xcode_type/Color Picker.app" -d "$dmg_file"
         if [ -n "$developerid_identity" ]; then
             if [ "$sign_code" == "ON" ]; then
                 codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime --verbose "$dmg_file"
@@ -185,33 +185,33 @@ build_colorpicker() {
     fi
 
     if [ "$appstore" == "ON" ]; then
-        pkg_file="$script_dir/Colorpicker_macOS${major_version}_${machine_arch}_${build_type}.pkg"
+        pkg_file="$script_dir/Color Picker_macOS${major_version}_${machine_arch}_${build_type}.pkg"
         if [ -f "$pkg_file" ]; then
             rm -f "$pkg_file"
         fi
 
         # provisioning
         if [ -n "$provisioning_profile" ] && [ -n "$provisioning_profile_path" ]; then
-            cp -f "$provisioning_profile_path" "$xcode_type/Colorpicker.app/Contents/embedded.provisionprofile"
+            cp -f "$provisioning_profile_path" "$xcode_type/Color Picker.app/Contents/embedded.provisionprofile"
         else
             echo "Provisioning profile and path must be set for appstore distribution, will be skipped."
         fi
 
         # deploy
-        $script_dir/scripts/macdeploy.sh -b "$xcode_type/Colorpicker.app" -m "$prefix/bin/macdeployqt"
+        $script_dir/scripts/macdeploy.sh -b "$xcode_type/Color Picker.app" -m "$prefix/bin/macdeployqt"
         if [ -n "$mac_developer_identity" ]; then
             if [ "$sign_code" == "ON" ]; then
                 # entitlements
                 teamid=$(echo "$mac_developer_identity" | awk -F '[()]' '{print $2}')
-                applicationid=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$xcode_type/Colorpicker.app/Contents/Info.plist")
+                applicationid=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$xcode_type/Color Picker.app/Contents/Info.plist")
                 entitlements="$script_dir/resources/App.entitlements"
                 echo sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
                 sed -e "s/\${TEAMID}/$teamid/g" -e "s/\${APPLICATIONIDENTIFIER}/$applicationid/g" "$script_dir/resources/App.entitlements.in" > "$entitlements"
-                echo permission_app "$xcode_type/Colorpicker.app"
-                permission_app "$xcode_type/Colorpicker.app"
-                codesign --force --deep --sign "$mac_developer_identity" "$xcode_type/Colorpicker.app"
-                codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$xcode_type/Colorpicker.app/Contents/MacOS/Colorpicker"
-                codesign --verify "$xcode_type/Colorpicker.app"
+                echo permission_app "$xcode_type/Color Picker.app"
+                permission_app "$xcode_type/Color Picker.app"
+                codesign --force --deep --sign "$mac_developer_identity" "$xcode_type/Color Picker.app"
+                codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$xcode_type/Color Picker.app/Contents/MacOS/Color Picker"
+                codesign --verify "$xcode_type/Color Picker.app"
             fi
         else 
             echo "Mac Developer identity must be set for appstore distribution, sign will be skipped."
@@ -221,13 +221,13 @@ build_colorpicker() {
         if [ "$sign_code" == "ON" ]; then
             if [ -n "$mac_installer_identity" ]; then
                 echo "Signing package with Mac installer identity"
-                productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --sign "${mac_installer_identity}" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
+                productbuild --component "$xcode_type/Color Picker.app" "/Applications" --sign "${mac_installer_identity}" --product "$xcode_type/Color Picker.app/Contents/Info.plist" "$pkg_file" 
             else 
                 echo "Mac Installer identity must be set for appstore distribution, sign will be skipped."
-                productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
+                productbuild --component "$xcode_type/Color Picker.app" "/Applications" --product "$xcode_type/Color Picker.app/Contents/Info.plist" "$pkg_file" 
             fi  
         else
-            productbuild --component "$xcode_type/Colorpicker.app" "/Applications" --product "$xcode_type/Colorpicker.app/Contents/Info.plist" "$pkg_file" 
+            productbuild --component "$xcode_type/Color Picker.app" "/Applications" --product "$xcode_type/Color Picker.app/Contents/Info.plist" "$pkg_file" 
         fi
     fi
 }
