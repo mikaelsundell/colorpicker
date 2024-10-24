@@ -173,6 +173,7 @@ class ColorpickerPrivate : public QObject
                 QScopedPointer<Ui_About> about;
                 about.reset(new Ui_About());
                 about->setupUi(this);
+                about->name->setText(MACOSX_BUNDLE_BUNDLE_NAME);
                 about->version->setText(MACOSX_BUNDLE_LONG_VERSION_STRING);
                 about->copyright->setText(MACOSX_BUNDLE_COPYRIGHT);
                 QString url = GITHUBURL;
@@ -1105,7 +1106,7 @@ ColorpickerPrivate::blocked()
 void
 ColorpickerPrivate::loadSettings()
 {
-    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, "Colorpicker");
+    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, MACOSX_BUNDLE_BUNDLE_NAME);
     iccProfile = settings.value("iccProfile", "").toString();
     aperture = settings.value("aperture", aperture).toInt();
     ui->aperture->setValue(aperture);
@@ -1128,7 +1129,7 @@ ColorpickerPrivate::loadSettings()
 void
 ColorpickerPrivate::saveSettings()
 {
-    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, "Colorpicker");
+    QSettings settings(MACOSX_BUNDLE_GUI_IDENTIFIER, MACOSX_BUNDLE_BUNDLE_NAME);
     settings.setValue("iccProfile", iccProfile);
     settings.setValue("aperture", aperture);
     settings.setValue("markerSize", ui->markerSize->value());

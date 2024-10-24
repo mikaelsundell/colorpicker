@@ -18,6 +18,9 @@ set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package (OpenCV CONFIG REQUIRED)
 find_package (Lcms2 REQUIRED)
 
+# app
+set (app_name "Color Picker")
+
 # sources
 set (app_sources
     colorpicker.cpp
@@ -64,22 +67,27 @@ set (bundle_sources
     "${CMAKE_SOURCE_DIR}/resources/MacOSXBundle.plist.in"
 )
 
+# source groups
+source_group("ICC Files" FILES ${app_iccprofiles})
+source_group("Resouce Files" FILES ${app_resources})
+
 if (APPLE)
     set (MACOSX_BUNDLE_GUI_IDENTIFIER "com.github.mikaelsundell.colorpicker")
-    set (MACOSX_BUNDLE_EXECUTABLE_NAME ${project_name})
-    set (MACOSX_BUNDLE_INFO_STRING ${project_name})
-    set (MACOSX_BUNDLE_BUNDLE_NAME ${project_name})
+    set (MACOSX_BUNDLE_EXECUTABLE_NAME ${app_name})
+    set (MACOSX_BUNDLE_INFO_STRING ${app_name})
+    set (MACOSX_BUNDLE_BUNDLE_NAME ${app_name})
     set (MACOSX_BUNDLE_ICON_FILE AppIcon.icns)
-    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.692")
-    set (MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0.6")
+    set (MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.7")
+    set (MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0.7")
     set (MACOSX_BUNDLE_BUNDLE_VERSION ${MACOSX_BUNDLE_LONG_VERSION_STRING})
-    set (MACOSX_BUNDLE_COPYRIGHT "Copyright 2022-present Contributors to the ${project_name} project")
+    set (MACOSX_BUNDLE_COPYRIGHT "Copyright 2022-present Contributors to the ${app_name} project")
     set (MACOSX_DEPLOYMENT_TARGET ${DEPLOYMENT_TARGET})
     set (CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
     set_source_files_properties(${app_iccprofiles} PROPERTIES MACOSX_PACKAGE_LOCATION "ICCProfiles")
     set_source_files_properties(${app_resources} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    add_executable (${project_name} MACOSX_BUNDLE ${app_sources} ${app_resources} ${app_iccprofiles})
+    add_executable ("Colorpicker" MACOSX_BUNDLE ${app_sources} ${app_resources} ${app_iccprofiles})
     # definitions
+    add_definitions(-DMACOSX_BUNDLE_BUNDLE_NAME="${MACOSX_BUNDLE_BUNDLE_NAME}")
     add_definitions(-DMACOSX_BUNDLE_GUI_IDENTIFIER="${MACOSX_BUNDLE_GUI_IDENTIFIER}")
     add_definitions(-DMACOSX_BUNDLE_COPYRIGHT="${MACOSX_BUNDLE_COPYRIGHT}")
     add_definitions(-DMACOSX_BUNDLE_LONG_VERSION_STRING="${MACOSX_BUNDLE_LONG_VERSION_STRING}")
@@ -95,7 +103,7 @@ if (APPLE)
         )
     endif()
     set_target_properties(${project_name} PROPERTIES
-        OUTPUT_NAME ${project_name}
+        OUTPUT_NAME ${app_name}
     )
     target_compile_options (${project_name} PRIVATE -Wno-deprecated-register)
     target_include_directories (${project_name} PRIVATE ${LCMS2_INCLUDE_DIR})
