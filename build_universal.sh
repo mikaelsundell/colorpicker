@@ -33,7 +33,6 @@ merge_app() {
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
                     fi
-                    echo ""
                 fi
             done
             ;;
@@ -53,7 +52,6 @@ merge_app() {
                 else
                     echo -e "framework $merge_framework does not exist, will not be merged"
                 fi
-                echo ""
             done
             ;;
         executables)
@@ -66,7 +64,6 @@ merge_app() {
                         lipo -create "$file" "$merge_file" -output "$file.tmp"
                         mv "$file.tmp" "$file"
                     fi
-                    echo ""
                 fi
             done
             ;;
