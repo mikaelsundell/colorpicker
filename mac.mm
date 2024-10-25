@@ -113,7 +113,7 @@ namespace mac
                 if (displayProfileUrl) CFRelease(displayProfileUrl);
             }
         };
-        QMap<uint32_t, ColorSyncProfile> colorsynccache;    
+        QMap<uint32_t, ColorSyncProfile> colorsynccache;
         ColorSyncProfile grabColorSyncProfile(NSScreen* screen)
         {
             ColorSyncProfile colorSyncProfile;
@@ -304,15 +304,21 @@ namespace mac
         return grabIccProfile(wid).displayProfileUrl;
     }
 
-    QPoint fromNativeCursor(float x, float y)
-    {
+    QPoint fromNativeCursor(float x, float y) {
         QPointF point(x, y);
-        QScreen* screen = QGuiApplication::primaryScreen();
+        QScreen* primaryScreen = QGuiApplication::primaryScreen();
+        QPointF cursor(point.x(), primaryScreen->geometry().height() - point.y());
+        QRect boundingRect;
+        for (QScreen* screen : QGuiApplication::screens()) {
+            boundingRect = boundingRect.united(screen->geometry());
+        }
+        // can happen over remote desktop, greater coordinates than physical dimensions
+        cursor.setX(qBound(static_cast<qreal>(boundingRect.left()), cursor.x(),  static_cast<qreal>(boundingRect.right())));
+        cursor.setY(qBound(static_cast<qreal>(boundingRect.top()), cursor.y(), static_cast<qreal>(boundingRect.bottom())));
         // this is worth to mention, mac uses float mouse location vs. integer in Qt,
         // type conversion to closest integer will fail geometry contains() checks as
         // mouse may be rounded up and fall on edge, hence treated as outside.
-        QPointF cursor = QPointF(point.x(), screen->geometry().height() - point.y());
-        return QPoint(floor(cursor.x()), floor(cursor.y()));
+        return QPoint(static_cast<int>(floor(cursor.x())), static_cast<int>(floor(cursor.y())));
     }
 
     QPointF toNativeCursor(int x, int y)

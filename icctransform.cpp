@@ -117,7 +117,7 @@ ICCTransformPrivate::mapTransform(const QColorSpace& colorSpace, const QString& 
         cache[profile].insert(format, QMap<QString, cmsHTRANSFORM>());
     }
     if (!cache[profile][format].contains(outProfile)) {
-        cmsHPROFILE cmsProfile = cmsOpenProfileFromMem(data.constData(), data.size());
+        cmsHPROFILE cmsProfile = cmsOpenProfileFromMem(data.constData(), static_cast<cmsUInt32Number>(data.size()));
         cmsHPROFILE cmsDisplayProfile = cmsOpenProfileFromFile(outProfile.toLocal8Bit().constData(), "r");
         int flags = (format == QImage::Format_ARGB32_Premultiplied ? cmsFLAGS_COPY_ALPHA : 0);
         cache[profile][format].insert(
