@@ -22,7 +22,6 @@ Table of Contents
       - [Display profiles](#display-profiles)
       - [Color processing in LCMS](#color-processing-in-lcms)
   - [Privacy \& Security](#privacy--security)
-  - [Build \& Package](#build--package)
   - [Web Resources](#web-resources)
   - [Copyright](#copyright)
 
@@ -31,7 +30,7 @@ Introduction
 
 <img src="resources/Colorpicker.png" style="padding-bottom: 20px;" />
 
-Colorpicker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
+Color Picker is a versatile Mac application designed to select and capture colors from various screens. It features a color wheel visualizer, aiding users in color design by offering tools to create harmonious color palettes and explore color relationships.
 
 <a href="https://apps.apple.com/se/app/colorpicker-colors-in-harmony/id6503638316?l=en-GB&mt=12" target="_blank" style="cursor: pointer;">
     <img src="resources/AppStore/Badge.png" valign="middle" alt="Icon" width="140">
@@ -115,21 +114,7 @@ Little CMS (LCMS) is a widely-used color management system in open-source projec
 Privacy & Security
 ------------------
 
-colorpicker uses macOS to create images from display and needs permission for `Screen recording`. Add Colorpicker app to the list of allowed applications in `System settings`.
-
-Build & Package
-------------------
-Colorpicker is built using the ```build.sh``` script.
-
-Build all - debug and release:
-```shell
-./build.sh all (--deploy)
-```
-
-Requires pipeline and 3rdparty build at the same level as Colorpicker.
-
-* Pipeline            https://github.com/mikaelsundell/pipeline
-* 3rdparty            https://github.com/mikaelsundell/3rdparty
+Color Picker uses macOS to create images from display and needs permission for `Screen recording`. Add Color Picker app to the list of allowed applications in `System settings`.
 
 Web Resources
 -------------
