@@ -39,8 +39,6 @@ parse_args() {
                 provisioning_profile="${1#*=}" ;;
             --provisioningpath=*)
                 provisioning_profile_path="${1#*=}" ;;
-            --github)
-                github=ON ;;
             --appstore)
                 appstore=ON ;;
             *)
@@ -77,16 +75,8 @@ echo "---------------------------------"
 
 # signing
 if [ "$sign_code" == "ON" ]; then
-    default_developerid_identity=${DEVELOPERID_IDENTITY:-}
     default_mac_developer_identity=${MAC_DEVELOPER_IDENTITY:-}
     default_mac_installer_identity=${MAC_INSTALLER_IDENTITY:-}
-
-    read -p "enter Developer ID certificate identity [$default_developerid_identity]: " input_developerid_identity
-    developerid_identity=${input_developerid_identity:-$default_developerid_identity}
-
-    if [[ ! "$developerid_identity" == *"Developer ID"* ]]; then
-        echo "Developer ID certificate identity must contain 'Developer ID', required for github distribution."
-    fi
 
     read -p "enter Mac Developer certificate Identity [$default_mac_developer_identity]: " input_mac_developer_identity
     mac_developer_identity=${input_mac_developer_identity:-$default_mac_developer_identity}
@@ -157,34 +147,6 @@ build_colorpicker() {
         cmake .. -DDEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" -DCMAKE_MODULE_PATH="$script_dir/modules" -DCMAKE_PREFIX_PATH="$prefix" -G Xcode
     fi
     cmake --build . --config $xcode_type --parallel &&
-
-    if [ "$github" == "ON" ]; then
-        dmg_file="$script_dir/${pkg_name}_macOS${major_version}_${machine_arch}_${build_type}.dmg"
-        if [ -f "$dmg_file" ]; then
-            rm -f "$dmg_file"
-        fi
-
-        # deploy
-        $script_dir/scripts/macdeploy.sh -b "$xcode_type/${app_name}.app" -m "$prefix/bin/macdeployqt"
-
-        if [ -n "$developerid_identity" ]; then
-            if [ "$sign_code" == "ON" ]; then
-                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime "$xcode_type/${app_name}.app"
-            fi
-        else 
-            echo "Developer ID identity must be set for github distribution, sign will be skipped."
-        fi
-
-        # deploydmg
-        $script_dir/scripts/macdmg.sh -b "$xcode_type/${app_name}.app" -d "$dmg_file"
-        if [ -n "$developerid_identity" ]; then
-            if [ "$sign_code" == "ON" ]; then
-                codesign --force --deep --sign "$developerid_identity" --timestamp --options runtime --verbose "$dmg_file"
-            fi
-        else 
-            echo "Developer ID identity must be set for github distribution, sign will be skipped."
-        fi
-    fi
 
     if [ "$appstore" == "ON" ]; then
         pkg_file="$script_dir/${pkg_name}_macOS${major_version}_${machine_arch}_${build_type}.pkg"
