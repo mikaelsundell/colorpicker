@@ -7,11 +7,11 @@ Changes
 
 #### 1.1.1
 
-- Updated Qt framworks to version 8.6
+- Updated Qt framworks to version 6.8.1
 - Added CHANGES.md to track version changes
 
 #### 1.1.2
 
 - Added genicc native ICC generation tool
 - Fixed ColorSync integration, now rendering to sRGB
-- Updated Qt framworks to version 8.10.1
+- Updated Qt framworks to version 6.10.1
