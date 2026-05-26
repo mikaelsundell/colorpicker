@@ -182,11 +182,12 @@ class ColorpickerPrivate : public QObject
                 about->github->setTextInteractionFlags(Qt::TextBrowserInteraction);
                 about->github->setOpenExternalLinks(true);
                 QFile file(":/files/resources/Copyright.txt");
-                file.open(QIODevice::ReadOnly | QIODevice::Text);
-                QTextStream in(&file);
-                QString text = in.readAll();
-                file.close();
-                about->licenses->setText(text);
+                if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                    QTextStream in(&file);
+                    QString text = in.readAll();
+                    file.close();
+                    about->licenses->setText(text);
+                }
             }
         };
         class State
@@ -290,6 +291,11 @@ void
 ColorpickerPrivate::init()
 {
     mac::setDarkAppearance();
+    QSurfaceFormat format;
+    format.setColorSpace(QColorSpace::SRgb);
+    // applying this ensures all new widgets/windows are tagged for
+    // the system compositor's color management pipeline.
+    QSurfaceFormat::setDefaultFormat(format);
     // icc profile
     ICCTransform* transform = ICCTransform::instance();
     QDir resources(QApplication::applicationDirPath() + "/../Resources");
@@ -316,7 +322,7 @@ ColorpickerPrivate::init()
     for(QFileInfo iccfile : iccfiles.entryInfoList( QStringList( "*.icc" )))
     {
         ui->iccColorProfile->addItem
-            ("Convert to " + iccfile.baseName(), QVariant::fromValue(iccfile.filePath()));
+            ("Convert to " + iccfile.completeBaseName(), QVariant::fromValue(iccfile.filePath()));
         
         if (iccfile.filePath() == iccProfile) {
             ui->iccColorProfile->setCurrentIndex(ui->iccColorProfile->count() - 1);
@@ -415,11 +421,11 @@ ColorpickerPrivate::init()
     connect(ui->markerSize, &QSlider::valueChanged, this, &ColorpickerPrivate::markerSizeChanged);
     connect(ui->backgroundOpacity, &QSlider::valueChanged, this, &ColorpickerPrivate::backgroundOpacityChanged);
     connect(ui->angle, &QSlider::valueChanged, this, &ColorpickerPrivate::angleChanged);
-    connect(ui->iqline, &QCheckBox::stateChanged, this, &ColorpickerPrivate::iqlineChanged);
-    connect(ui->zoom, &QCheckBox::stateChanged, this, &ColorpickerPrivate::zoomChanged);
-    connect(ui->saturation, &QCheckBox::stateChanged, this, &ColorpickerPrivate::saturationChanged);
-    connect(ui->segmented, &QCheckBox::stateChanged, this, &ColorpickerPrivate::segmentedChanged);
-    connect(ui->labels, &QCheckBox::stateChanged, this, &ColorpickerPrivate::labelsChanged);
+    connect(ui->iqline, &QCheckBox::checkStateChanged, this, &ColorpickerPrivate::iqlineChanged);
+    connect(ui->zoom, &QCheckBox::checkStateChanged, this, &ColorpickerPrivate::zoomChanged);
+    connect(ui->saturation, &QCheckBox::checkStateChanged, this, &ColorpickerPrivate::saturationChanged);
+    connect(ui->segmented, &QCheckBox::checkStateChanged, this, &ColorpickerPrivate::segmentedChanged);
+    connect(ui->labels, &QCheckBox::checkStateChanged, this, &ColorpickerPrivate::labelsChanged);
     connect(ui->clear, &QAction::triggered, this, &ColorpickerPrivate::clear);
     connect(ui->toggleClear, &QPushButton::pressed, this, &ColorpickerPrivate::clear);
     connect(ui->pdf, &QPushButton::pressed, this, &ColorpickerPrivate::pdf);
@@ -460,35 +466,33 @@ ColorpickerPrivate::stylesheet()
 {
     QDir resources(QApplication::applicationDirPath());
     QFile stylesheet(resources.absolutePath() + "/../Resources/App.css");
-    stylesheet.open(QFile::ReadOnly);
-    QString qss = stylesheet.readAll();
-    QRegularExpression hslRegex("hsl\\(\\s*(\\d+)\\s*,\\s*(\\d+)%\\s*,\\s*(\\d+)%\\s*\\)");
-    QString transformqss = qss;
-    QRegularExpressionMatchIterator i = hslRegex.globalMatch(transformqss);
-    while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        if (match.hasMatch()) {
-            if (!match.captured(1).isEmpty() &&
-                !match.captured(2).isEmpty() &&
-                !match.captured(3).isEmpty())
-            {
-                int h = match.captured(1).toInt();
-                int s = match.captured(2).toInt();
-                int l = match.captured(3).toInt();
-                QColor color = QColor::fromHslF(h / 360.0f, s / 100.0f, l / 100.0f);
-                // icc profile
-                ICCTransform* transform = ICCTransform::instance();
-                color = transform->map(color.rgb());
-                QString hsl = QString("hsl(%1, %2%, %3%)")
-                                .arg(color.hue() == -1 ? 0 : color.hue())
-                                .arg(static_cast<int>(color.hslSaturationF() * 100))
-                                .arg(static_cast<int>(color.lightnessF() * 100));
-                
-                transformqss.replace(match.captured(0), hsl);
+    if (stylesheet.open(QFile::ReadOnly)) {
+        QString qss = stylesheet.readAll();
+        QRegularExpression hslRegex("hsl\\(\\s*(\\d+)\\s*,\\s*(\\d+)%\\s*,\\s*(\\d+)%\\s*\\)");
+        QString transformqss = qss;
+        QRegularExpressionMatchIterator i = hslRegex.globalMatch(transformqss);
+        while (i.hasNext()) {
+            QRegularExpressionMatch match = i.next();
+            if (match.hasMatch()) {
+                if (!match.captured(1).isEmpty() &&
+                    !match.captured(2).isEmpty() &&
+                    !match.captured(3).isEmpty())
+                {
+                    int h = match.captured(1).toInt();
+                    int s = match.captured(2).toInt();
+                    int l = match.captured(3).toInt();
+                    QColor color = QColor::fromHslF(h / 360.0f, s / 100.0f, l / 100.0f);
+                    QString hsl = QString("hsl(%1, %2%, %3%)")
+                        .arg(color.hue() == -1 ? 0 : color.hue())
+                        .arg(static_cast<int>(color.hslSaturationF() * 100))
+                        .arg(static_cast<int>(color.lightnessF() * 100));
+                    
+                    transformqss.replace(match.captured(0), hsl);
+                }
             }
         }
+        qApp->setStyleSheet(transformqss);
     }
-    qApp->setStyleSheet(transformqss);
 }
 
 QRect
@@ -762,7 +766,7 @@ ColorpickerPrivate::widget()
     {
         ui->display->setText(QString("Display #%1").arg(state.displayNumber));
         QFontMetrics metrics(ui->iccProfile->font());
-        QString text = metrics.elidedText(QFileInfo(iccCursorProfile).baseName(), Qt::ElideRight, ui->iccProfile->width());
+        QString text = metrics.elidedText(QFileInfo(iccCursorProfile).completeBaseName(), Qt::ElideRight, ui->iccProfile->width());
         ui->iccProfile->setText(text);
     }
     // rgb
@@ -808,7 +812,7 @@ ColorpickerPrivate::widget()
                     QColor color = dragcolor;
                     colors.push_back(QPair<QColor,QPair<QString,QString>>(
                         color.rgb(),
-                        QPair<QString,QString>(QFileInfo(iccCurrentProfile).baseName(), iccCurrentProfile)
+                        QPair<QString,QString>(QFileInfo(iccCurrentProfile).completeBaseName(), iccCurrentProfile)
                     ));
                 }
             }
@@ -816,7 +820,7 @@ ColorpickerPrivate::widget()
             {
                 colors.push_back(QPair<QColor,QPair<QString,QString>>(
                     state.color,
-                    QPair<QString,QString>(QFileInfo(state.iccProfile).baseName(), state.iccProfile)
+                    QPair<QString,QString>(QFileInfo(state.iccProfile).completeBaseName(), state.iccProfile)
                 ));
             }
             // push current state, use as selected
@@ -1014,7 +1018,6 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
     if (event->type() == QEvent::ScreenChangeInternal) {
         profile();
-        stylesheet();
         if (active) {
             view();
             widget();
@@ -2302,7 +2305,7 @@ ColorpickerPrivate::asColors()
         colors.push_back(
             QPair<QColor,QPair<QString, QString>>(
                 color,
-                QPair<QString, QString>(QFileInfo(state.iccProfile).baseName(), state.iccProfile))
+                QPair<QString, QString>(QFileInfo(state.iccProfile).completeBaseName(), state.iccProfile))
         );
     }
     return colors;

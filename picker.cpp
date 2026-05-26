@@ -191,7 +191,6 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         
         if (mouseEvent->button() == Qt::RightButton) {
             widget->hide();
-            
         }
         return true;
     }

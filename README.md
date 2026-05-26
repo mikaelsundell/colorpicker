@@ -1,6 +1,6 @@
 # <img src="resources/AppIcon.png" valign="middle" alt="Icon" width="50" height="50" hspace="10">Color picker: Stay in harmony #
 
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/mikaelsundell/icloud-snapshot/blob/master/license.md)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)]()
 
 Table of Contents
 =================
