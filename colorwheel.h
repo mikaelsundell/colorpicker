@@ -6,44 +6,45 @@
 #include <QMainWindow>
 
 class ColorwheelPrivate;
-class Colorwheel : public QWidget
-{
+class Colorwheel : public QWidget {
     Q_OBJECT
-    public:
-        Colorwheel(QWidget* parent = nullptr);
-        virtual ~Colorwheel();
-        qreal angle() const;
-        qreal markerSize() const;
-        qreal borderOpacity() const;
-        qreal backgroundOpacity() const;
-        QList<QPair<QColor, QPair<QString, QString>>> colors();
-        int mapToSelected(const QPoint& point) const;
-        QColor mapToColor(const QPoint& point) const;
-        QColor mapToColor(const QColor& color, const QPoint& point) const;
-        bool isIQLineVisible() const;
-        bool isSaturationVisible() const;
-        bool isLabelsVisible() const;
-        bool isSegmented() const;
-        qsizetype selected() const;
-        bool hasSelection() const;
-        qreal zoomFactor() const;
-    
-    public Q_SLOTS:
-        void setAngle(qreal angle);
-        void setBackgroundOpacity(qreal opacity);
-        void setBorderOpacity(qreal opacity);
-        void setColors(const QList<QPair<QColor, QPair<QString, QString>>> colors, bool selected = true);
-        void setIQLineVisible(bool visible);
-        void setLabelsVisible(bool visible);
-        void setMarkerSize(qreal size);
-        void setSaturationVisible(bool visible);
-        void setSegmented(bool segmented);
-        void setSelected(qsizetype selected);
-        void setZoomFactor(qreal factor);
+public:
+    Colorwheel(QWidget* parent = nullptr);
+    virtual ~Colorwheel();
+    qreal angle() const;
+    qreal markerSize() const;
+    qreal borderOpacity() const;
+    qreal backgroundOpacity() const;
+    QList<QPair<QColor, QPair<QString, QString>>> colors();
+    int mapToSelected(const QPoint& point) const;
+    QColor mapToColor(const QPoint& point) const;
+    QColor mapToColor(const QColor& color, const QPoint& point) const;
+    bool isIQLineVisible() const;
+    bool isSaturationVisible() const;
+    bool isLabelsVisible() const;
+    bool isSegmented() const;
+    qsizetype selected() const;
+    bool hasSelection() const;
+    qreal zoomFactor() const;
 
-    protected:
-        void paintEvent(QPaintEvent *event) override;
-        
-    private:
-        QScopedPointer<ColorwheelPrivate> p;
+public Q_SLOTS:
+    void setAngle(qreal angle);
+    void setBackgroundOpacity(qreal opacity);
+    void setBorderOpacity(qreal opacity);
+    void setColors(const QList<QPair<QColor, QPair<QString, QString>>> colors, bool selected = true);
+    void setIQLineVisible(bool visible);
+    void setLabelsVisible(bool visible);
+    void setMarkerSize(qreal size);
+    void setSaturationVisible(bool visible);
+    void setSegmented(bool segmented);
+    void setSelected(qsizetype selected);
+    void setZoomFactor(qreal factor);
+
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void paintEvent(QPaintEvent* event) override;
+
+private:
+    QScopedPointer<ColorwheelPrivate> p;
 };

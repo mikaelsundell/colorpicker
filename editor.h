@@ -6,27 +6,26 @@
 #include <QDialog>
 
 class EditorPrivate;
-class Editor : public QDialog
-{
+class Editor : public QDialog {
     Q_OBJECT
-    public:
-        Editor(QWidget* parent = nullptr);
-        virtual ~Editor();
-        int maximum() const;
-        int minimum() const;
-        int value() const;
-        void setMaximum(int maximum);
-        void setMinimum(int minimum);
-        
-    public Q_SLOTS:
-        void setValue(int value);
-    
-    Q_SIGNALS:
-        void valueChanged(int);
-    
-    protected:
-        void paintEvent(QPaintEvent *event) override;
-    
-    private:
-        QScopedPointer<EditorPrivate> p;
+public:
+    Editor(QWidget* parent = nullptr);
+    virtual ~Editor();
+    int maximum() const;
+    int minimum() const;
+    int value() const;
+    void setMaximum(int maximum);
+    void setMinimum(int minimum);
+
+public Q_SLOTS:
+    void setValue(int value);
+
+Q_SIGNALS:
+    void valueChanged(int);
+
+protected:
+    void paintEvent(QPaintEvent* event) override;
+
+private:
+    QScopedPointer<EditorPrivate> p;
 };

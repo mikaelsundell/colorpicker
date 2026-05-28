@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/mikaelsundell/colorpicker
 
-#include <QApplication>
 #include "colorpicker.h"
+#include <QApplication>
 
 int
 main(int argc, char* argv[])

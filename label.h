@@ -6,20 +6,19 @@
 #include <QLabel>
 
 class LabelPrivate;
-class Label : public QLabel
-{
+class Label : public QLabel {
     Q_OBJECT
-    public:
-        Label(QWidget* parent = nullptr);
-        virtual ~Label();
-        void paintEvent(QPaintEvent* event) override;
+public:
+    Label(QWidget* parent = nullptr);
+    virtual ~Label();
+    void paintEvent(QPaintEvent* event) override;
 
-    public Q_SLOTS:
-        void setReadOnly(bool readOnly);
-    
-    Q_SIGNALS:
-        void triggered();
-    
-    private:
-        QScopedPointer<LabelPrivate> p;
+public Q_SLOTS:
+    void setReadOnly(bool readOnly);
+
+Q_SIGNALS:
+    void triggered();
+
+private:
+    QScopedPointer<LabelPrivate> p;
 };

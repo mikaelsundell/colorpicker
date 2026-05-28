@@ -9,38 +9,39 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
+#include <QTimer>
 #include <QtGlobal>
 
-class PickerPrivate : public QObject
-{
+class PickerPrivate : public QObject {
     Q_OBJECT
-    public:
-        PickerPrivate();
-        void init();
-        void mapToGeometry();
-        QSize mapToSize() const;
-        bool eventFilter(QObject* object, QEvent* event);
-    
-    public:
-        void paintPicker();
-        QPixmap buffer;
-        QColor color;
-        QPoint offset;
-        QPoint position;
-        QSize baseSize;
-        qreal factor;
-        qreal scale;
-        QPointer<Picker> widget;
+
+public:
+    PickerPrivate();
+    void init();
+    void mapToGeometry();
+    QSize mapToSize() const;
+    bool eventFilter(QObject* object, QEvent* event) override;
+    void setTopLevel();
+
+public:
+    void paintPicker();
+    QPixmap buffer;
+    QColor color;
+    QPoint offset;
+    QPoint position;
+    QSize baseSize;
+    qreal factor;
+    qreal scale;
+    QPointer<Picker> widget;
 };
 
 PickerPrivate::PickerPrivate()
-: color(Qt::white)
-, offset(QPoint(0.0, 0.0))
-, baseSize(256, 256)
-, scale(0.4)
-, factor(0.5)
-{
-}
+    : color(Qt::white)
+    , offset(QPoint(0, 0))
+    , baseSize(256, 256)
+    , factor(0.5)
+    , scale(0.4)
+{}
 
 void
 PickerPrivate::init()
@@ -48,24 +49,49 @@ PickerPrivate::init()
     widget->setAttribute(Qt::WA_TranslucentBackground);
     widget->resize(mapToSize());
     widget->installEventFilter(this);
-    mac::setTopLevel(widget->winId());
+}
+
+void
+PickerPrivate::setTopLevel()
+{
+#ifdef Q_OS_MAC
+    if (!widget || !widget->isVisible()) {
+        return;
+    }
+    QTimer::singleShot(0, widget, [this]() {
+        if (!widget || !widget->isVisible()) {
+            return;
+        }
+        mac::setTopLevel(widget->winId());
+    });
+#endif
 }
 
 void
 PickerPrivate::mapToGeometry()
 {
+    if (!widget) {
+        return;
+    }
+
     QScreen* screen = QGuiApplication::screenAt(position);
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    if (!screen) {
+        return;
+    }
     QSize size = mapToSize();
-    
     int x = position.x() - size.width() / 2;
     int y = position.y() - size.height() / 2;
-    int width;
-    int height;
+    int width = size.width();
+    int height = size.height();
+
     QRect screenGeometry = screen->geometry();
     // left
     if (x < screenGeometry.left()) {
         width = (x + size.width()) - screenGeometry.left();
-        offset.setX(width-size.width());
+        offset.setX(width - size.width());
         x = screenGeometry.left();
     }
     // right
@@ -91,10 +117,14 @@ PickerPrivate::mapToGeometry()
         offset.setY(0);
     }
     else {
-        height = size.height() ;
+        height = size.height();
         offset.setY(0);
     }
+
+    width = qMax(1, width);
+    height = qMax(1, height);
     widget->setGeometry(x, y, width, height);
+
     // needed to remove resize handlers
     widget->setFixedSize(width, height);
     widget->QWidget::update();
@@ -103,33 +133,44 @@ PickerPrivate::mapToGeometry()
 QSize
 PickerPrivate::mapToSize() const
 {
-    return(baseSize * factor);
+    return baseSize * factor;
 }
 
 void
 PickerPrivate::paintPicker()
 {
+    if (!widget) {
+        return;
+    }
     QScreen* screen = QGuiApplication::screenAt(position);
-    qreal dpr = screen->devicePixelRatio();
-    // size
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+
+    qreal dpr = screen ? screen->devicePixelRatio() : widget->devicePixelRatio();
     QSize size = mapToSize();
-    // buffer
     buffer = QPixmap(size * dpr);
     buffer.fill(Qt::transparent);
     buffer.setDevicePixelRatio(dpr);
-    
+
     QPainter p(&buffer);
     qreal diameter = std::min(size.width(), size.height()) * scale;
     qreal radius = diameter / 2.0;
+
     QPointF center(size.width() / 2.0, size.height() / 2.0);
     QRectF rect(center.x() - radius, center.y() - radius, diameter, diameter);
+
     // shadow
     {
         QColor shadow = Qt::black;
         shadow.setAlpha(80);
+
         QPointF offset(2, 2);
+
         p.setRenderHint(QPainter::Antialiasing);
+
         QRectF ellipse = rect.translated(offset);
+
         p.setBrush(shadow);
         p.setPen(Qt::NoPen);
         p.drawEllipse(ellipse);
@@ -137,6 +178,7 @@ PickerPrivate::paintPicker()
     // ellipse
     {
         QBrush brush(Qt::white);
+
         p.setPen(QPen(brush, 1.0));
         p.setBrush(QBrush(color));
         p.drawEllipse(rect);
@@ -146,7 +188,9 @@ PickerPrivate::paintPicker()
     {
         qreal length = qMax(radius * 0.4, 0.0);
         qreal origin = length * 0.2;
+
         QBrush brush = QBrush(Qt::white);
+
         p.setPen(QPen(brush, 1));
         p.drawLine(origin, 0, length, 0);
         p.drawLine(-length, 0, -origin, 0);
@@ -159,15 +203,24 @@ PickerPrivate::paintPicker()
 bool
 PickerPrivate::eventFilter(QObject* object, QEvent* event)
 {
+    Q_UNUSED(object);
+
+    if (!widget) {
+        return false;
+    }
     if (event->type() == QEvent::Show) {
         mac::hideCursor();
+        setTopLevel();
+        return false;
     }
     if (event->type() == QEvent::Hide) {
         mac::showCursor();
         widget->closed();
+        return false;
     }
     if (event->type() == QEvent::KeyPress) {
-        QKeyEvent* keyEvent = (QKeyEvent*)event;
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+
         if (keyEvent->key() == Qt::Key_Escape) {
             widget->hide();
             return true;
@@ -175,24 +228,26 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
         else if (keyEvent->key() == Qt::Key_Plus) {
             factor = qMin(factor + 0.2, 1.0);
             paintPicker();
-            mapToGeometry(); // needed to update mask
+            mapToGeometry();
+            return true;
         }
         else if (keyEvent->key() == Qt::Key_Minus) {
             factor = qMax(factor - 0.2, 0.2);
             paintPicker();
-            mapToGeometry(); // needed to update mask
+            mapToGeometry();
+            return true;
         }
     }
-    if (event->type() == QEvent::QEvent::MouseButtonPress) {
-        QMouseEvent* mouseEvent = (QMouseEvent*)event;
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
         if (mouseEvent->button() == Qt::LeftButton) {
             widget->triggered();
+            return true;
         }
-        
         if (mouseEvent->button() == Qt::RightButton) {
             widget->hide();
+            return true;
         }
-        return true;
     }
     return false;
 }
@@ -200,20 +255,15 @@ PickerPrivate::eventFilter(QObject* object, QEvent* event)
 #include "picker.moc"
 
 Picker::Picker(QWidget* parent)
-: QWidget(parent,
-  Qt::Dialog |
-  Qt::FramelessWindowHint |
-  Qt::NoDropShadowWindowHint)
-, p(new PickerPrivate())
+    : QWidget(parent, Qt::Dialog | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint)
+    , p(new PickerPrivate())
 {
     p->widget = this;
     p->init();
     p->paintPicker();
 }
 
-Picker::~Picker()
-{
-}
+Picker::~Picker() {}
 
 QColor
 Picker::color()
@@ -224,18 +274,26 @@ Picker::color()
 void
 Picker::paintEvent(QPaintEvent* event)
 {
+    Q_UNUSED(event);
+
     QPainter painter(this);
-    painter.fillRect(rect(), QColor(0, 0, 0, 1)); // needed for mouse cursor update
-    painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
+    painter.fillRect(rect(), QColor(0, 0, 0, 1));  // needed for mouse cursor update
+    if (!p->buffer.isNull()) {
+        painter.drawPixmap(p->offset.x(), p->offset.y(), p->buffer);
+    }
     painter.end();
 }
 
 void
 Picker::setColor(const QColor& color)
 {
-    if (p->color != color) {
-        p->color = color;
-        p->paintPicker();
+    if (p->color == color) {
+        return;
+    }
+    p->color = color;
+    p->paintPicker();
+    if (isVisible()) {
+        QWidget::update();
     }
 }
 
@@ -243,5 +301,6 @@ void
 Picker::update(const QPoint& position)
 {
     p->position = position;
+    p->paintPicker();
     p->mapToGeometry();
 }

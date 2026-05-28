@@ -6,27 +6,28 @@
 #include <QMainWindow>
 
 class ColorpickerPrivate;
-class Colorpicker : public QMainWindow
-{
+class Colorpicker : public QMainWindow {
     Q_OBJECT
-    public:
-        Colorpicker();
-        virtual ~Colorpicker();
-        bool active() const;
-        typedef struct {
-            int displayNumber;
-            QString iccProfile;
-            QPoint cursor;
-        } PickEvent;
-        typedef struct {
-            QPoint cursor;
-        } MoveEvent;
-    protected:
-        void dragEnterEvent(QDragEnterEvent* event) override;
-        void dropEvent(QDropEvent* event) override;
-    private:
-        void registerEvents();
-        void pickEvent(PickEvent event);
-        void moveEvent(MoveEvent event);
-        QScopedPointer<ColorpickerPrivate> p;
+public:
+    Colorpicker();
+    virtual ~Colorpicker();
+    bool active() const;
+    typedef struct {
+        int displayNumber;
+        QString iccProfile;
+        QPoint cursor;
+    } PickEvent;
+    typedef struct {
+        QPoint cursor;
+    } MoveEvent;
+
+protected:
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    void dropEvent(QDropEvent* event) override;
+
+private:
+    void registerEvents();
+    void pickEvent(PickEvent event);
+    void moveEvent(MoveEvent event);
+    QScopedPointer<ColorpickerPrivate> p;
 };

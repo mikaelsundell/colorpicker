@@ -33,7 +33,7 @@ struct Profile
     double gamma;
 };
 
-static cmsCIExyY
+cmsCIExyY
 xyY(double x, double y)
 {
     cmsCIExyY value;
@@ -43,7 +43,7 @@ xyY(double x, double y)
     return value;
 }
 
-static cmsCIEXYZ
+cmsCIEXYZ
 xyYToXYZ(const cmsCIExyY& value)
 {
     cmsCIEXYZ xyz;
@@ -53,7 +53,7 @@ xyYToXYZ(const cmsCIExyY& value)
     return xyz;
 }
 
-static cmsCIExyYTRIPLE
+cmsCIExyYTRIPLE
 primaries(double rx, double ry, double gx, double gy, double bx, double by)
 {
     cmsCIExyYTRIPLE result;
@@ -63,7 +63,7 @@ primaries(double rx, double ry, double gx, double gy, double bx, double by)
     return result;
 }
 
-static Matrix3
+Matrix3
 multiply(const Matrix3& a, const Matrix3& b)
 {
     Matrix3 r = {};
@@ -76,7 +76,7 @@ multiply(const Matrix3& a, const Matrix3& b)
     return r;
 }
 
-static cmsCIEXYZ
+cmsCIEXYZ
 multiply(const Matrix3& a, const cmsCIEXYZ& v)
 {
     cmsCIEXYZ r;
@@ -86,7 +86,7 @@ multiply(const Matrix3& a, const cmsCIEXYZ& v)
     return r;
 }
 
-static Matrix3
+Matrix3
 inverse(const Matrix3& a)
 {
     const double det =
@@ -111,7 +111,7 @@ inverse(const Matrix3& a)
     return r;
 }
 
-static Matrix3
+Matrix3
 rgbToXYZMatrix(const cmsCIExyY& white, const cmsCIExyYTRIPLE& prim)
 {
     const cmsCIEXYZ r = xyYToXYZ(prim.Red);
@@ -140,7 +140,7 @@ rgbToXYZMatrix(const cmsCIExyY& white, const cmsCIExyYTRIPLE& prim)
     return result;
 }
 
-static Matrix3
+Matrix3
 bradfordAdaptationMatrix(const cmsCIEXYZ& sourceWhite, const cmsCIEXYZ& targetWhite)
 {
     Matrix3 bradford = {};
@@ -160,7 +160,7 @@ bradfordAdaptationMatrix(const cmsCIEXYZ& sourceWhite, const cmsCIEXYZ& targetWh
     return multiply(bradfordInv, multiply(scale, bradford));
 }
 
-static cmsCIEXYZ
+cmsCIEXYZ
 columnToXYZ(const Matrix3& matrix, int column)
 {
     cmsCIEXYZ value;
@@ -170,7 +170,7 @@ columnToXYZ(const Matrix3& matrix, int column)
     return value;
 }
 
-static void
+void
 writeUInt32BE(std::vector<unsigned char>& data, cmsUInt32Number value)
 {
     data.push_back(static_cast<unsigned char>((value >> 24) & 0xff));
@@ -179,13 +179,13 @@ writeUInt32BE(std::vector<unsigned char>& data, cmsUInt32Number value)
     data.push_back(static_cast<unsigned char>(value & 0xff));
 }
 
-static cmsS15Fixed16Number
+cmsS15Fixed16Number
 toS15Fixed16(double value)
 {
     return static_cast<cmsS15Fixed16Number>(std::round(value * 65536.0));
 }
 
-static bool
+bool
 writeChromaticAdaptationTag(cmsHPROFILE handle, const Matrix3& matrix)
 {
     std::vector<unsigned char> data;
@@ -205,7 +205,7 @@ writeChromaticAdaptationTag(cmsHPROFILE handle, const Matrix3& matrix)
     ) != 0;
 }
 
-static cmsToneCurve*
+cmsToneCurve*
 buildToneCurve(const Profile& profile)
 {
     switch (profile.curveType) {
@@ -238,7 +238,7 @@ buildToneCurve(const Profile& profile)
     return nullptr;
 }
 
-static bool
+bool
 writeProfile(const Profile& profile)
 {
     const cmsCIExyY d50xy = xyY(0.34567, 0.35850);
@@ -317,7 +317,6 @@ writeProfile(const Profile& profile)
     return true;
 }
 
-// main
 int
 main(int argc, const char* argv[])
 {

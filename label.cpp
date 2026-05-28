@@ -8,25 +8,23 @@
 #include <QPainter>
 #include <QPointer>
 
-class LabelPrivate : public QObject
-{
+class LabelPrivate : public QObject {
     Q_OBJECT
-    public:
-        LabelPrivate();
-        void init();
-        void update();
-        bool eventFilter(QObject* object, QEvent* event);
-    
-    public:
-        bool readOnly;
-        QPixmap buffer;
-        QPointer<Label> widget;
+public:
+    LabelPrivate();
+    void init();
+    void update();
+    bool eventFilter(QObject* object, QEvent* event);
+
+public:
+    bool readOnly;
+    QPixmap buffer;
+    QPointer<Label> widget;
 };
 
 LabelPrivate::LabelPrivate()
-: readOnly(true)
-{
-}
+    : readOnly(true)
+{}
 
 void
 LabelPrivate::init()
@@ -45,8 +43,7 @@ LabelPrivate::update()
     QPainter p(&buffer);
     QBrush brush = QBrush(Qt::white);
     // readonly
-    if (!readOnly)
-    {
+    if (!readOnly) {
         QRectF rect = widget->rect();
         p.setPen(QPen(brush, 2));
         p.drawLine(rect.bottomLeft(), rect.bottomRight());
@@ -58,8 +55,7 @@ LabelPrivate::update()
 bool
 LabelPrivate::eventFilter(QObject* object, QEvent* event)
 {
-    if (event->type() == QEvent::QEvent::MouseButtonPress)
-    {
+    if (event->type() == QEvent::QEvent::MouseButtonPress) {
         QMouseEvent* mouseEvent = (QMouseEvent*)event;
         if (mouseEvent->button() == Qt::LeftButton) {
             widget->triggered();
@@ -71,16 +67,14 @@ LabelPrivate::eventFilter(QObject* object, QEvent* event)
 #include "label.moc"
 
 Label::Label(QWidget* parent)
-: QLabel(parent)
-, p(new LabelPrivate())
+    : QLabel(parent)
+    , p(new LabelPrivate())
 {
     p->widget = this;
     p->init();
 }
 
-Label::~Label()
-{
-}
+Label::~Label() {}
 
 void
 Label::setReadOnly(bool readOnly)

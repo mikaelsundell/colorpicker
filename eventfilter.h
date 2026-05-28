@@ -5,16 +5,15 @@
 #pragma once
 #include <QMainWindow>
 
-class Eventfilter : public QObject
-{
+class Eventfilter : public QObject {
     Q_OBJECT
-    public:
-        Eventfilter(QObject* object = nullptr);
-        virtual ~Eventfilter();
+public:
+    Eventfilter(QObject* object = nullptr);
+    virtual ~Eventfilter();
 
-    Q_SIGNALS:
-        void pressed();
-    
-    protected:
-        bool eventFilter(QObject *obj, QEvent *event) override;
+Q_SIGNALS:
+    void pressed();
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override;
 };
