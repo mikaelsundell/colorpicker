@@ -33,9 +33,7 @@ public:
     QScopedPointer<Ui_Editor> ui;
 };
 
-EditorPrivate::EditorPrivate()
-{
-}
+EditorPrivate::EditorPrivate() {}
 
 void
 EditorPrivate::init()
@@ -163,9 +161,7 @@ Editor::Editor(QWidget* parent)
     p->update();
 }
 
-Editor::~Editor()
-{
-}
+Editor::~Editor() {}
 
 int
 Editor::maximum() const
@@ -207,10 +203,8 @@ void
 Editor::paintEvent(QPaintEvent* event)
 {
     const qreal dpr = devicePixelRatio();
-    const bool needsUpdate =
-        p->buffer.isNull() ||
-        p->buffer.size() != size() * dpr ||
-        !qFuzzyCompare(p->buffer.devicePixelRatio() + 1.0, dpr + 1.0);
+    const bool needsUpdate = p->buffer.isNull() || p->buffer.size() != size() * dpr
+                             || !qFuzzyCompare(p->buffer.devicePixelRatio() + 1.0, dpr + 1.0);
 
     if (needsUpdate) {
         p->update();
