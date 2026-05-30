@@ -83,6 +83,14 @@ permission_app() {
     done
 }
 
+# extended attributes
+xattrs_app() {
+    local bundle_path="$1"
+    echo "clearing extended attributes for $bundle_path..."
+    xattr -cr "$bundle_path" || true
+    find "$bundle_path" -name ".DS_Store" -delete
+}
+
 # parse arguments
 parse_args() {
     while [[ "$#" -gt 0 ]]; do
@@ -191,8 +199,9 @@ build_colorpicker() {
             merge_app "$build_app" "$x86_64_app" "frameworks" "$mac_developer_identity"
             merge_app "$build_app" "$x86_64_app" "executables" "$mac_developer_identity"
             permission_app "$build_app"
+            xattrs_app "$build_app"
             codesign --force --deep --sign "$mac_developer_identity" "$build_app"
-            codesign --force --sign "$mac_developer_identity" --entitlements $entitlements "$build_app/Contents/MacOS/${app_name}"
+            codesign --force --sign "$mac_developer_identity" --entitlements "$entitlements" "$build_app/Contents/MacOS/${app_name}"
             codesign --verify "$build_app"
         fi
     else 
