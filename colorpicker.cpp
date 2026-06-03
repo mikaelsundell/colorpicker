@@ -945,7 +945,7 @@ ColorpickerPrivate::dropEvent(QDropEvent* event)
 
 bool
 ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
-{ /*
+{
     if (event->type() == QEvent::ScreenChangeInternal) {
         profile();
         if (active) {
@@ -1022,7 +1022,7 @@ ColorpickerPrivate::eventFilter(QObject* object, QEvent* event)
                 }
             }
         }
-    }*/
+    }
     return false;
 }
 
@@ -1044,19 +1044,19 @@ ColorpickerPrivate::loadSettings()
     aperture = settings.value("aperture", aperture).toInt();
     ui->aperture->setValue(aperture);
     ui->markerSize->setValue(settings.value("markerSize", ui->markerSize->value()).toInt());
-    //ui->colorWheel->setMarkerSize((qreal)ui->markerSize->value() / ui->markerSize->maximum());
+    ui->colorWheel->setMarkerSize((qreal)ui->markerSize->value() / ui->markerSize->maximum());
     ui->backgroundOpacity->setValue(settings.value("backgroundOpacity", ui->backgroundOpacity->value()).toInt());
-    //ui->colorWheel->setBackgroundOpacity((qreal)ui->backgroundOpacity->value() / ui->backgroundOpacity->maximum());
+    ui->colorWheel->setBackgroundOpacity((qreal)ui->backgroundOpacity->value() / ui->backgroundOpacity->maximum());
     ui->iqline->setChecked(settings.value("iqLine", ui->iqline->isChecked()).toBool());
-    //ui->colorWheel->setIQLineVisible(ui->iqline->isChecked());
+    ui->colorWheel->setIQLineVisible(ui->iqline->isChecked());
     ui->zoom->setChecked(settings.value("zoom", ui->zoom->isChecked()).toBool());
-    //ui->colorWheel->setZoomFactor(ui->zoom->isChecked() ? 2.0 : 1.0);
+    ui->colorWheel->setZoomFactor(ui->zoom->isChecked() ? 2.0 : 1.0);
     ui->saturation->setChecked(settings.value("saturation", ui->saturation->isChecked()).toBool());
-    //ui->colorWheel->setSaturationVisible(ui->saturation->isChecked());
+    ui->colorWheel->setSaturationVisible(ui->saturation->isChecked());
     ui->segmented->setChecked(settings.value("segmented", ui->segmented->isChecked()).toBool());
-    //ui->colorWheel->setSegmented(ui->segmented->isChecked());
+    ui->colorWheel->setSegmented(ui->segmented->isChecked());
     ui->labels->setChecked(settings.value("labels", ui->labels->isChecked()).toBool());
-    //ui->colorWheel->setLabelsVisible(ui->labels->isChecked());
+    ui->colorWheel->setLabelsVisible(ui->labels->isChecked());
 }
 
 void
