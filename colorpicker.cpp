@@ -284,6 +284,7 @@ ColorpickerPrivate::init()
     // settings
     loadSettings();
     // resources
+    int index = -1;
     QDir iccfiles(QApplication::applicationDirPath() + "/../ICCProfiles");
     ui->iccColorProfile->insertSeparator(ui->iccColorProfile->count());
     for (QFileInfo iccfile : iccfiles.entryInfoList(QStringList("*.icc"))) {
@@ -291,8 +292,15 @@ ColorpickerPrivate::init()
                                      QVariant::fromValue(iccfile.filePath()));
 
         if (iccfile.filePath() == iccProfile) {
-            ui->iccColorProfile->setCurrentIndex(ui->iccColorProfile->count() - 1);
+            index = ui->iccColorProfile->count() - 1;
         }
+    }
+    if (index != -1) {
+        ui->iccColorProfile->setCurrentIndex(index);
+    }
+    else {
+        iccProfile.clear();
+        ui->iccColorProfile->setCurrentIndex(0);
     }
     // actions
     ui->toggleActive->setDefaultAction(ui->active);
